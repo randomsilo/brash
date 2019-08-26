@@ -12,12 +12,14 @@ namespace brashcli
         {
             return new LoggerConfiguration()
                 .MinimumLevel.Debug()
-                .WriteTo.File($"brashcli_.log", rollingInterval: RollingInterval.Day)
+                .WriteTo.File($"./tmp/brashcli_.log", rollingInterval: RollingInterval.Day)
                 .CreateLogger();
         }
 
         static int Main(string[] args) 
         {
+            System.IO.Directory.CreateDirectory("./tmp");
+            
             return CommandLine.Parser.Default.ParseArguments<ProjectInitialization>(args)
 	            .MapResult(
 	                (ProjectInitialization opts) => CreateProjectInitializeScript(opts)
@@ -37,10 +39,9 @@ namespace brashcli
                 try 
                 {
                     ProjectInitializationProcess projectInitializationProcess = new ProjectInitializationProcess(logger, opts);
-
-                    // make directory
-
-                    // create project script
+                    returnCode = projectInitializationProcess.Execute();
+                    if (returnCode != 0)
+                        break;
 
                 }
                 catch(Exception exception)
