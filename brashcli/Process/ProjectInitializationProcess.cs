@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using CommandLine;
 using Newtonsoft.Json;
 using Serilog;
-using hcli.Option;
+using brashcli.Option;
 
-namespace hcli.Process
+namespace brashcli.Process
 {
     public class ProjectInitializationProcess
     {

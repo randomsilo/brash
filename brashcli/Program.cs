@@ -1,10 +1,10 @@
 ﻿using System;
 using CommandLine;
 using Serilog;
-using hcli.Option;
-using hcli.Process;
+using brashcli.Option;
+using brashcli.Process;
 
-namespace hcli
+namespace brashcli
 {
     public class Program
     {
@@ -12,7 +12,7 @@ namespace hcli
         {
             return new LoggerConfiguration()
                 .MinimumLevel.Debug()
-                .WriteTo.File($"hcli_.log", rollingInterval: RollingInterval.Day)
+                .WriteTo.File($"brashcli_.log", rollingInterval: RollingInterval.Day)
                 .CreateLogger();
         }
 

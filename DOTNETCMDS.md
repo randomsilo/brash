@@ -7,7 +7,7 @@ Please update this file with whatever commands are used to update a solution or 
 
 ```bash
 # project directories
-mkdir -p ./hcli
+mkdir -p ./brashcli
 
 ```
 
@@ -15,7 +15,7 @@ mkdir -p ./hcli
 
 ```bash
 
-cd ./hcli
+cd ./brashcli
 dotnet new console
 
 dotnet add package System.Data.SQLite

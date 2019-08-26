@@ -1,7 +1,7 @@
 
 using CommandLine;
 
-namespace hcli.Option
+namespace brashcli.Option
 {
     [Verb("init", HelpText = "Create project setup script")]
     public class ProjectInitialization 
