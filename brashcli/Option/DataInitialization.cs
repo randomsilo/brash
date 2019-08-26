@@ -3,8 +3,8 @@ using CommandLine;
 
 namespace brashcli.Option
 {
-    [Verb("project-init", HelpText = "Create project setup script")]
-    public class ProjectInitialization 
+    [Verb("data-init", HelpText = "Create project data json file")]
+    public class DataInitialization 
     {
         [Option('n', "name", Required = true, HelpText = "Project name, camal case, no spaces or special characters")]
         public string ProjectName { get; set; }

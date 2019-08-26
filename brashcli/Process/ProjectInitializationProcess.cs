@@ -29,6 +29,7 @@ namespace brashcli.Process
         {
             int returnCode = 0;
 
+            _logger.Debug("CreateProjectInitializeScript: start");
             do
             {
                 try 
@@ -44,6 +45,7 @@ namespace brashcli.Process
                 }
 
             } while(false);
+            _logger.Debug("CreateProjectInitializeScript: end");
 
             return returnCode;
         }

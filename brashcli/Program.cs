@@ -19,10 +19,11 @@ namespace brashcli
         static int Main(string[] args) 
         {
             System.IO.Directory.CreateDirectory("./tmp");
-            
-            return CommandLine.Parser.Default.ParseArguments<ProjectInitialization>(args)
+
+            return CommandLine.Parser.Default.ParseArguments<ProjectInitialization,DataInitialization>(args)
 	            .MapResult(
 	                (ProjectInitialization opts) => CreateProjectInitializeScript(opts)
+                    , (DataInitialization opts) => CreateDataJsonFile(opts)
                     , errs => 1);
         }
 
@@ -38,8 +39,8 @@ namespace brashcli
             {
                 try 
                 {
-                    ProjectInitializationProcess projectInitializationProcess = new ProjectInitializationProcess(logger, opts);
-                    returnCode = projectInitializationProcess.Execute();
+                    ProjectInitializationProcess process = new ProjectInitializationProcess(logger, opts);
+                    returnCode = process.Execute();
                     if (returnCode != 0)
                         break;
 
@@ -47,6 +48,36 @@ namespace brashcli
                 catch(Exception exception)
                 {
                     logger.Error(exception, "CreateProjectInitializeScript, unhandled exception caught.");
+                    returnCode = -1;
+                    break;
+                }
+
+            } while(false);
+
+            return returnCode;
+		}
+
+        static int CreateDataJsonFile(DataInitialization opts)
+		{
+            int returnCode = 0;
+            var logger = GetLogger();
+
+            logger.Information($"Project  : {opts.ProjectName}"); 
+            logger.Information($"Directory: {opts.DirectoryName}"); 
+
+			do 
+            {
+                try 
+                {
+                    DataInitializationProcess process = new DataInitializationProcess(logger, opts);
+                    returnCode = process.Execute();
+                    if (returnCode != 0)
+                        break;
+
+                }
+                catch(Exception exception)
+                {
+                    logger.Error(exception, "CreateDataJsonFile, unhandled exception caught.");
                     returnCode = -1;
                     break;
                 }
