@@ -1,25 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using CommandLine;
-using Newtonsoft.Json;
 using Serilog;
+using hcli.Option;
+using hcli.Process;
 
 namespace hcli
 {
-
-    [Verb("init", HelpText = "Create project setup script")]
-    public class InitOptions 
-    {
-        [Option('n', "name", Required = true, HelpText = "Project name, camal case, no spaces or special characters")]
-        public string ProjectName { get; set; }
-
-        [Option('d', "directory", Required = true, HelpText = "Directory path, linux, like: ./tmp or ../tmp")]
-        public string DirectoryName { get; set; }
-    }
-    
     public class Program
     {
         private static ILogger GetLogger()
@@ -32,13 +18,13 @@ namespace hcli
 
         static int Main(string[] args) 
         {
-            return CommandLine.Parser.Default.ParseArguments<InitOptions>(args)
+            return CommandLine.Parser.Default.ParseArguments<ProjectInitialization>(args)
 	            .MapResult(
-	                (InitOptions opts) => CreateProjectInitializeScript(opts)
+	                (ProjectInitialization opts) => CreateProjectInitializeScript(opts)
                     , errs => 1);
         }
 
-        static int CreateProjectInitializeScript(InitOptions opts)
+        static int CreateProjectInitializeScript(ProjectInitialization opts)
 		{
             int returnCode = 0;
             var logger = GetLogger();
@@ -50,11 +36,16 @@ namespace hcli
             {
                 try 
                 {
-                    // put work here
+                    ProjectInitializationProcess projectInitializationProcess = new ProjectInitializationProcess(logger, opts);
+
+                    // make directory
+
+                    // create project script
+
                 }
-                catch(Exception global)
+                catch(Exception exception)
                 {
-                    logger.Error(global, "CreateProjectInitializeScript, unhandled exception caught.");
+                    logger.Error(exception, "CreateProjectInitializeScript, unhandled exception caught.");
                     returnCode = -1;
                     break;
                 }
