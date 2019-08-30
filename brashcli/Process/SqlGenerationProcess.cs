@@ -115,7 +115,8 @@ namespace brashcli.Process
 			Handlebars.RegisterTemplate("ParentPattern", GetParentPattern(parent));
 			Handlebars.RegisterTemplate("AdditionalPatterns", GetAdditionalPattern(entry));
 			Handlebars.RegisterTemplate("Fields", GetFieldsPattern(entry));
-			// Handlebars.RegisterTemplate("TrackingPattern", partialSource);
+			//Handlebars.RegisterTemplate("References", partialSource);
+			Handlebars.RegisterTemplate("TrackingPattern", GetTrackingPattern(entry));
 			var template = Handlebars.Compile( GetTemplateCreateTableSql());
 
             var result = template( tableData);
@@ -146,7 +147,8 @@ CREATE TABLE {{Domain}}.{{Entry.Name}} (
 	{{>ParentPattern}}
     {{>AdditionalPatterns}}
 	{{>Fields}}
-
+	{{>TrackingPattern}}
+	
 );
 ";
 		}
@@ -258,6 +260,32 @@ CREATE TABLE {{Domain}}.{{Entry.Name}} (
 			return template;
 		}
 
+		private string GetTrackingPattern(Structure entry)
+		{
+			string template = "";
+
+			if (entry.TrackingPattern != null)
+			{
+				switch(entry.TrackingPattern)
+				{
+					case Global.TRACKINGPATTERN_AUDIT:
+						template = GetTemplateTrackingPatternAudit(entry);
+						break;
+					case Global.TRACKINGPATTERN_AUDITPRESERVE:
+						template = GetTemplateTrackingPatternAuditPreserve(entry);
+						break;
+					case Global.TRACKINGPATTERN_VERSION:
+						template = GetTemplateTrackingPatternVersion(entry);
+						break;
+					case Global.TRACKINGPATTERN_NONE:
+					default:
+						break;
+				}
+			}
+
+			return template;
+		}
+
 		private string GetTemplateIdPatternAskId( Structure entry)
         {
             return $"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT";
@@ -277,7 +305,6 @@ CREATE TABLE {{Domain}}.{{Entry.Name}} (
 			sb.Append( $"\n\t, IsCurrent INTEGER");
             return sb.ToString();
 		}
-
 
 		private string GetTemplateParentPatternAskId( Structure entry)
         {
@@ -303,6 +330,37 @@ CREATE TABLE {{Domain}}.{{Entry.Name}} (
 			sb.Append( $"\n\t, ChoiceName TEXT");
 			sb.Append( $"\n\t, OrderNo INTEGER");
 			sb.Append( $"\n\t, IsDisabled INTEGER");
+            return sb.ToString();
+		}
+
+		private string GetTemplateTrackingPatternAudit( Structure entry)
+        {
+			StringBuilder sb = new StringBuilder();
+			sb.Append( $"\n\t, CreatedBy TEXT");
+			sb.Append( $"\n\t, CreatedOn NUMERIC");
+			sb.Append( $"\n\t, UpdatedBy TEXT");
+			sb.Append( $"\n\t, UpdatedOn NUMERIC");
+
+            return sb.ToString();
+		}
+
+		private string GetTemplateTrackingPatternAuditPreserve( Structure entry)
+        {
+			StringBuilder sb = new StringBuilder();
+			sb.Append( GetTemplateTrackingPatternAudit(entry));
+			sb.Append( $"\n\t, IsDeleted INTEGER");
+			
+            return sb.ToString();
+		}
+
+		private string GetTemplateTrackingPatternVersion( Structure entry)
+        {
+			StringBuilder sb = new StringBuilder();
+			sb.Append( $"\n\t, RecordState TEXT");
+			sb.Append( $"\n\t, PerformedBy TEXT");
+			sb.Append( $"\n\t, PerformedOn NUMERIC");
+			sb.Append( $"\n\t, PerformedReason TEXT");
+
             return sb.ToString();
 		}
 
