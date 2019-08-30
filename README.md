@@ -21,19 +21,19 @@ dotnet run data-init -n PollBook -d /shop/randomsilo/PollBook
 
 # modify structure.json to fit project needs
 # generate sql files
-dotnet run sql-gen -f /shop/randomsilo/PollBook/structure.json
+dotnet run sql-gen --file /shop/randomsilo/PollBook/structure.json
 
 # generate domain classes
-dotnet run domain-gen -f /shop/randomsilo/PollBook/structure.json
+dotnet run domain-gen --file /shop/randomsilo/PollBook/structure.json
 
 # generate repository classes
-dotnet run repo-gen -f /shop/randomsilo/PollBook/structure.json
+dotnet run repo-gen --file /shop/randomsilo/PollBook/structure.json
 
 # generate api classes
-dotnet run api-gen -f /shop/randomsilo/PollBook/structure.json
+dotnet run api-gen --file /shop/randomsilo/PollBook/structure.json
 
 # generate xunit classes
-dotnet run test-gen -f /shop/randomsilo/PollBook/structure.json
+dotnet run test-gen --file /shop/randomsilo/PollBook/structure.json
 
 
 
