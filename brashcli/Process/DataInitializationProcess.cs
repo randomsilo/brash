@@ -68,43 +68,113 @@ namespace brashcli.Process
 
         private string GetTemplateDataJsonFile()
         {
-            return @"
-{
-	""entities"": [
+            return @"{ 
+    ""Domain"": """ + _options.ProjectName + @"""
+	, ""Structure"": [
 		{
-			""name"": ""State""
-			, ""fields"": [
-				  { ""name"": ""Name"", ""type"": ""S"" }
-				, { ""name"": ""Abbrv"", ""type"": ""S"" }
+			""Name"": ""BiologoicalSex""
+			, ""AdditionalPatterns"": [
+				""Choice""
+			]
+			, ""Choices"": [
+				""Male""
+				, ""Female""
 			]
 		}
 		, {
-			""name"": ""Employee""
-			, ""base"": ""Audit""
-			, ""extensions"": [
+			""Name"": ""PhoneType""
+			, ""AdditionalPatterns"": [
+				""Choice""
+			]
+			, ""Choices"": [
+				""Cell""
+				, ""Home""
+				, ""Work""
+			]
+		}
+		, {
+			""Name"": ""AddressType""
+			, ""AdditionalPatterns"": [
+				""Choice""
+			]
+			, ""Choices"": [
+				""Residence""
+				, ""Mailing""
+				, ""Billing""
+			]
+		}
+		, {
+			""Name"": ""UsState""
+			, ""AdditionalPatterns"": [
+				""Choice""
+			]
+			, ""Fields"": [
+				{ ""Name"": ""Abbreviation"", ""Type"": ""S"" }
+			]
+			, ""AdditionalSqlStatements"": [
+				""INSERT INTO UsState (ChoiceName, Abbreviation) VALUES ('Nebraska', 'NE');""
+				, ""INSERT INTO UsState (ChoiceName, Abbreviation) VALUES ('Iowa', 'IA');""
+				, ""INSERT INTO UsState (ChoiceName, Abbreviation) VALUES ('North Dakota', 'ND');""
+			]
+		}
+		, {
+			""Name"": ""Person""
+			, ""Fields"": [
+				  { ""Name"": ""LastName"", ""Type"": ""S"" }
+				, { ""Name"": ""FirstName"", ""Type"": ""S"" }
+				, { ""Name"": ""MiddleName"", ""Type"": ""S"" }
+				, { ""Name"": ""DateOfBirth"", ""Type"": ""D"" }
+			]
+			, ""References"": [
 				{
-					""name"": ""MailingAddress""
-					, ""fields"": [
-						  { ""name"": ""AddressLine1"", ""type"": ""S"" }
-						, { ""name"": ""AddressLine2"", ""type"": ""S"" }
-						, { ""name"": ""City"", ""type"": ""S"" }
-						, { ""name"": ""StateRef"", ""type"": ""R"", ""entity"": ""State""}
-						, { ""name"": ""ZipCode"", ""type"": ""S"" }
-						/*
-							S = String
-							G = Guid
-							R = Reference
-							D = DateTime
-							N = Decimal
-							I = Integer
-							B = Blob
-							C = Clob
-						*/
+					""ColumnName"": ""BiologoicalSexRef""
+					, ""TableName"": ""BiologoicalSex""
+				}
+			]
+			, ""Extensions"": [
+				{
+					""Name"": ""Identication""
+					, ""Fields"": [
+						{ ""Name"": ""UserName"", ""Type"": ""S"" }
+						, { ""Name"": ""Email"", ""Type"": ""S"" }
+						, { ""Name"": ""PinCode"", ""Type"": ""I"" }
 					]
 				}
 			]
-			, ""children"": [
-			
+			, ""Children"": [
+				{
+					""Name"": ""Phone""
+					, ""Fields"": [
+						  { ""Name"": ""PhoneNumber"", ""Type"": ""S"" }
+						  , { ""Name"": ""Notes"", ""Type"": ""S"" }
+					]
+					, ""References"": [
+						{
+							""ColumnName"": ""PhoneTypeRef""
+							, ""TableName"": ""PhoneType""
+						}
+					]
+				}
+				, {
+					""Name"": ""Address""
+					, ""Fields"": [
+						  { ""Name"": ""Attention"", ""Type"": ""S"" }
+						  , { ""Name"": ""AddressLine1"", ""Type"": ""S"" }
+						  , { ""Name"": ""AddressLine2"", ""Type"": ""S"" }
+						  , { ""Name"": ""City"", ""Type"": ""S"" }
+						  , { ""Name"": ""PostalCode"", ""Type"": ""S"" }
+					]
+					, ""References"": [
+						{
+							""ColumnName"": ""UsStateRef""
+							, ""TableName"": ""UsState""
+						}
+						, {
+							""ColumnName"": ""AddressTypeRef""
+							, ""TableName"": ""AddressType""
+						}
+					]
+				}
 			]
 		}
 	]

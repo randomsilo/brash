@@ -8,6 +8,7 @@ Please update this file with whatever commands are used to update a solution or 
 ```bash
 # project directories
 mkdir -p ./brashcli
+mkdir -p ./Brash
 
 ```
 
@@ -28,5 +29,15 @@ dotnet add package CommandLineParser
 dotnet add package Handlebars.Net
 
 cd ..
+
+```
+
+
+```bash
+cd Brash
+dotnet new classlib
+dotnet add package System.Data.SQLite
+dotnet add package Dapper
+dotnet add package Serilog
 
 ```
