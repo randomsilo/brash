@@ -127,7 +127,7 @@ namespace brashcli.Process
 			]
 			, ""References"": [
 				{
-					""ColumnName"": ""BiologoicalSexRef""
+					""ColumnName"": ""Gender""
 					, ""TableName"": ""BiologoicalSex""
 				}
 			]
@@ -166,11 +166,11 @@ namespace brashcli.Process
 					]
 					, ""References"": [
 						{
-							""ColumnName"": ""UsStateRef""
+							""ColumnName"": ""State""
 							, ""TableName"": ""UsState""
 						}
 						, {
-							""ColumnName"": ""AddressTypeRef""
+							""ColumnName"": ""AddressType""
 							, ""TableName"": ""AddressType""
 						}
 					]

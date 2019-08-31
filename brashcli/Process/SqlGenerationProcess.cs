@@ -19,12 +19,14 @@ namespace brashcli.Process
 		private string _pathProject;
 		private string _pathSql;
 		private DomainStructure _domainStructure;
+		private Dictionary<string,string> _tablePrimaryKeyDataType;
         public SqlGenerationProcess(ILogger logger, SqlGeneration options)
         {
             _logger = logger;
             _options = options;
 			_pathProject = System.IO.Path.GetDirectoryName(_options.FilePath);
 			_pathSql = System.IO.Path.Combine(_pathProject, "sql");
+			_tablePrimaryKeyDataType = new Dictionary<string, string>();
         }
 
         public int Execute()
@@ -39,9 +41,6 @@ namespace brashcli.Process
 					ReadDataJsonFile();
                     MakeSqlDirectory();
 					CreateSqlFileCreateTable();
-					CreateSqlFileForeignKeys();
-					CreateSqlFileChoiceData();
-					CreateSqlFileAdditionalSql();
                 }
                 catch(Exception exception)
                 {
@@ -81,8 +80,12 @@ namespace brashcli.Process
 		private void MakeCreateTableSqlFile( Structure parent, Structure entry)
 		{
 			_logger.Debug($"{entry.Name}");
+			if (parent != null)
+				_logger.Debug($"\t Parent: {parent.Name}");
 
 			MakeCreateTableSql(parent, entry);
+			AddAdditionalSql(entry);
+			AddChoicesSql(entry);
 			
 			if (entry.Children != null && entry.Children.Count > 0)
 			{
@@ -101,9 +104,14 @@ namespace brashcli.Process
 			}
 		}
 
+		public string MakeEntryFilePath(Structure entry)
+		{
+			return System.IO.Path.Combine(_pathSql, entry.Name + ".sql");
+		}
+
 		private void MakeCreateTableSql(Structure parent, Structure entry)
 		{
-			string fileNamePath = System.IO.Path.Combine(_pathSql, entry.Name + ".sql");
+			string fileNamePath = MakeEntryFilePath(entry);
 			var tableData = new TableData() 
 			{
 				Domain = _domainStructure.Domain,
@@ -111,12 +119,15 @@ namespace brashcli.Process
 				Entry = entry
 			};
 
+			SaveTableIdDataType(entry);
 			Handlebars.RegisterTemplate("IdPattern", GetIdPattern(entry));
 			Handlebars.RegisterTemplate("ParentPattern", GetParentPattern(parent));
 			Handlebars.RegisterTemplate("AdditionalPatterns", GetAdditionalPattern(entry));
 			Handlebars.RegisterTemplate("Fields", GetFieldsPattern(entry));
-			//Handlebars.RegisterTemplate("References", partialSource);
+			Handlebars.RegisterTemplate("References", GetReferences(entry));
 			Handlebars.RegisterTemplate("TrackingPattern", GetTrackingPattern(entry));
+			Handlebars.RegisterTemplate("ForeignKeyPattern", GetForeignKeyPattern(parent));
+			Handlebars.RegisterTemplate("ForeignKeyReferencePattern", GetForeignKeyReferencePattern(entry));
 			var template = Handlebars.Compile( GetTemplateCreateTableSql());
 
             var result = template( tableData);
@@ -124,19 +135,36 @@ namespace brashcli.Process
 			System.IO.File.WriteAllText( fileNamePath, result);
 		}
 
-		private void CreateSqlFileForeignKeys()
+		private void AddAdditionalSql(Structure entry)
 		{
-			_logger.Debug("CreateSqlFileForeignKeys");
+			if (entry.AdditionalSqlStatements != null)
+			{
+				string fileNamePath = MakeEntryFilePath(entry);
+				StringBuilder sqlStatements = new StringBuilder();
+
+				foreach( var sql in entry.AdditionalSqlStatements)
+				{
+					sqlStatements.Append( "\n" + sql);
+				}
+
+				System.IO.File.AppendAllText( fileNamePath, sqlStatements.ToString());
+			}	
 		}
 
-		private void CreateSqlFileChoiceData()
+		private void AddChoicesSql(Structure entry)
 		{
-			_logger.Debug("CreateSqlFileChoiceData");
-		}
+			if (entry.Choices != null)
+			{
+				string fileNamePath = MakeEntryFilePath(entry);
+				StringBuilder sqlStatements = new StringBuilder();
 
-		private void CreateSqlFileAdditionalSql()
-		{
-			_logger.Debug("CreateSqlFileAdditionalSql");
+				foreach( var choice in entry.Choices)
+				{
+					sqlStatements.Append( $"\nINSERT INTO {entry.Name} (ChoiceName, OrderNo) VALUES ('{choice}', (SELECT MAX(IFNULL(OrderNo,0))+1 FROM {entry.Name}));");
+				}
+
+				System.IO.File.AppendAllText( fileNamePath, sqlStatements.ToString());
+			}	
 		}
 
 		private string GetTemplateCreateTableSql()
@@ -147,16 +175,19 @@ CREATE TABLE {{Domain}}.{{Entry.Name}} (
 	{{>ParentPattern}}
     {{>AdditionalPatterns}}
 	{{>Fields}}
+	{{>References}}
 	{{>TrackingPattern}}
-	
+	{{>ForeignKeyPattern}}
+	{{>ForeignKeyReferencePattern}}
+
 );
 ";
 		}
 
-		/*
-		{{>References}}
-		{{>TrackingPattern}}
-		 */
+		private void SaveTableIdDataType(Structure entry)
+		{
+			_tablePrimaryKeyDataType.Add(entry.Name, entry.IdPattern ?? Global.IDPATTERN_ASKID);
+		}
 		
 		private string GetIdPattern(Structure entry)
 		{
@@ -193,13 +224,50 @@ CREATE TABLE {{Domain}}.{{Entry.Name}} (
 					template = GetTemplateParentPatternAskVersion(entry);
 					break;
 				case Global.IDPATTERN_ASKID:
-					template = GetTemplateParentPatternAskId(entry);
-					break;
 				default:
+					template = GetTemplateParentPatternAskId(entry);
 					break;
 			}
 
 			return template;
+		}
+
+		private string GetForeignKeyPattern(Structure entry)
+		{
+			string template = "";
+			if (entry == null)
+				return template;
+
+			switch(entry.IdPattern)
+			{
+				case Global.IDPATTERN_ASKGUID:
+					template = GetTemplateForeignKeyPatternAskGuid(entry);
+					break;
+				case Global.IDPATTERN_ASKVERSION:
+					template = GetTemplateForeignKeyPatternAskVersion(entry);
+					break;
+				case Global.IDPATTERN_ASKID:
+				default:
+					template = GetTemplateForeignKeyPatternAskId(entry);
+					break;
+			}
+
+			return template;
+		}
+
+		private string GetForeignKeyReferencePattern(Structure entry)
+		{
+			StringBuilder template = new StringBuilder();
+
+			if (entry.References != null)
+			{
+				foreach( var reference in entry.References)
+				{
+					template.Append( GetTemplateForeignKeyReference(reference, _tablePrimaryKeyDataType[entry.Name]));
+				}
+			}
+
+			return template.ToString();
 		}
 
 		private string GetAdditionalPattern(Structure entry)
@@ -286,6 +354,42 @@ CREATE TABLE {{Domain}}.{{Entry.Name}} (
 			return template;
 		}
 
+		private string GetReferences(Structure entry)
+		{
+			StringBuilder template = new StringBuilder();
+
+			if (entry.References != null)
+			{
+				foreach( var reference in entry.References)
+				{
+					template.Append( GetTemplateReference(reference, _tablePrimaryKeyDataType[entry.Name]));
+				}
+			}
+
+			return template.ToString();
+		}
+
+		private string GetTemplateReference(Reference reference, string idPattern)
+		{
+			string template = "";
+			
+			switch(idPattern)
+			{
+				case Global.IDPATTERN_ASKGUID:
+					template = $"\n\t, {reference.ColumnName}GuidRef TEXT";
+					break;
+				case Global.IDPATTERN_ASKVERSION:
+					template = $"\n\t, {reference.ColumnName}GuidRef TEXT";
+					template = $"\n\t, {reference.ColumnName}RecordVersionRef INTEGER";
+					break;
+				case Global.IDPATTERN_ASKID:
+				default:
+					template = $"\n\t, {reference.ColumnName}IdRef INTEGER";
+					break;
+			}
+			
+			return template;
+		}
 		private string GetTemplateIdPatternAskId( Structure entry)
         {
             return $"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT";
@@ -321,6 +425,61 @@ CREATE TABLE {{Domain}}.{{Entry.Name}} (
 			StringBuilder sb = new StringBuilder();
 			sb.Append( $"\n\t, {entry.Name}Guid TEXT");
 			sb.Append( $"\n\t, {entry.Name}RecordVersion INTEGER");
+            return sb.ToString();
+		}
+
+		private string GetTemplateForeignKeyPatternAskId( Structure entry)
+        {
+            return $"\n\t, FOREIGN KEY ({entry.Name}Id) REFERENCES {entry.Name}({entry.Name}Id) ON DELETE CASCADE";
+		}
+
+		private string GetTemplateForeignKeyPatternAskGuid( Structure entry)
+        {
+            return $"\n\t, FOREIGN KEY ({entry.Name}Guid) REFERENCES {entry.Name}({entry.Name}Guid) ON DELETE CASCADE";
+		}
+
+		private string GetTemplateForeignKeyPatternAskVersion( Structure entry)
+        {
+			StringBuilder sb = new StringBuilder();
+			sb.Append( $"\n\t, FOREIGN KEY ({entry.Name}Guid) REFERENCES {entry.Name}({entry.Name}Guid) ON DELETE CASCADE");
+            return sb.ToString();
+		}
+
+		private string GetTemplateForeignKeyReference(Reference reference, string idPattern)
+		{
+			string template = "";
+			
+			switch(idPattern)
+			{
+				case Global.IDPATTERN_ASKGUID:
+					template = GetTemplateForeignKeyReferencePatternAskGuid(reference);
+					break;
+				case Global.IDPATTERN_ASKVERSION:
+					template = GetTemplateForeignKeyReferencePatternAskVersion(reference);
+					break;
+				case Global.IDPATTERN_ASKID:
+				default:
+					template = GetTemplateForeignKeyReferencePatternAskId(reference);
+					break;
+			}
+			
+			return template;
+		}
+
+		private string GetTemplateForeignKeyReferencePatternAskId( Reference reference)
+        {
+            return $"\n\t, FOREIGN KEY ({reference.ColumnName}IdRef) REFERENCES {reference.TableName}({reference.ColumnName}Id) ON DELETE NULL";
+		}
+
+		private string GetTemplateForeignKeyReferencePatternAskGuid( Reference reference)
+        {
+            return $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.ColumnName}Guid) ON DELETE NULL";
+		}
+
+		private string GetTemplateForeignKeyReferencePatternAskVersion( Reference reference)
+        {
+			StringBuilder sb = new StringBuilder();
+			sb.Append( $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.ColumnName}Guid) ON DELETE NULL");
             return sb.ToString();
 		}
 
