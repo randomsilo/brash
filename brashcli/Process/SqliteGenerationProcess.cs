@@ -12,15 +12,15 @@ using brashcli.Model;
 
 namespace brashcli.Process
 {
-    public class SqlGenerationProcess
+    public class SqliteGenerationProcess
     {
         private ILogger _logger;
-        private SqlGeneration _options;
+        private SqliteGeneration _options;
 		private string _pathProject;
 		private string _pathSql;
 		private DomainStructure _domainStructure;
 		private Dictionary<string,string> _tablePrimaryKeyDataType;
-        public SqlGenerationProcess(ILogger logger, SqlGeneration options)
+        public SqliteGenerationProcess(ILogger logger, SqliteGeneration options)
         {
             _logger = logger;
             _options = options;
@@ -468,18 +468,18 @@ CREATE TABLE {{Domain}}.{{Entry.Name}} (
 
 		private string GetTemplateForeignKeyReferencePatternAskId( Reference reference)
         {
-            return $"\n\t, FOREIGN KEY ({reference.ColumnName}IdRef) REFERENCES {reference.TableName}({reference.ColumnName}Id) ON DELETE NULL";
+            return $"\n\t, FOREIGN KEY ({reference.ColumnName}IdRef) REFERENCES {reference.TableName}({reference.TableName}Id) ON DELETE NULL";
 		}
 
 		private string GetTemplateForeignKeyReferencePatternAskGuid( Reference reference)
         {
-            return $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.ColumnName}Guid) ON DELETE NULL";
+            return $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.TableName}Guid) ON DELETE NULL";
 		}
 
 		private string GetTemplateForeignKeyReferencePatternAskVersion( Reference reference)
         {
 			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.ColumnName}Guid) ON DELETE NULL");
+			sb.Append( $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.TableName}Guid) ON DELETE NULL");
             return sb.ToString();
 		}
 

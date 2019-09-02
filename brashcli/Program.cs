@@ -20,11 +20,11 @@ namespace brashcli
         {
             System.IO.Directory.CreateDirectory("./tmp");
 
-            return CommandLine.Parser.Default.ParseArguments<ProjectInitialization,DataInitialization, SqlGeneration>(args)
+            return CommandLine.Parser.Default.ParseArguments<ProjectInitialization,DataInitialization, SqliteGeneration>(args)
 	            .MapResult(
 	                (ProjectInitialization opts) => CreateProjectInitializeScript(opts)
                     , (DataInitialization opts) => CreateDataJsonFile(opts)
-                    , (SqlGeneration opts) => CreateSqlFiles(opts)
+                    , (SqliteGeneration opts) => CreateSqlFiles(opts)
                     , errs => 1);
         }
 
@@ -88,7 +88,7 @@ namespace brashcli
             return returnCode;
 		}
 
-        static int CreateSqlFiles(SqlGeneration opts)
+        static int CreateSqlFiles(SqliteGeneration opts)
 		{
             int returnCode = 0;
             var logger = GetLogger();
@@ -99,7 +99,7 @@ namespace brashcli
             {
                 try 
                 {
-                    SqlGenerationProcess process = new SqlGenerationProcess(logger, opts);
+                    SqliteGenerationProcess process = new SqliteGenerationProcess(logger, opts);
                     returnCode = process.Execute();
                     if (returnCode != 0)
                         break;

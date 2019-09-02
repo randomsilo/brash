@@ -112,9 +112,9 @@ namespace brashcli.Process
 				{ ""Name"": ""Abbreviation"", ""Type"": ""S"" }
 			]
 			, ""AdditionalSqlStatements"": [
-				""INSERT INTO UsState (ChoiceName, Abbreviation) VALUES ('Nebraska', 'NE');""
-				, ""INSERT INTO UsState (ChoiceName, Abbreviation) VALUES ('Iowa', 'IA');""
-				, ""INSERT INTO UsState (ChoiceName, Abbreviation) VALUES ('North Dakota', 'ND');""
+				""INSERT INTO UsState (ChoiceName, Abbreviation, OrderNo) VALUES ('Nebraska', 'NE', (SELECT MAX(IFNULL(OrderNo,0))+1 FROM UsState));""
+				, ""INSERT INTO UsState (ChoiceName, Abbreviation, OrderNo) VALUES ('Iowa', 'IA', (SELECT MAX(IFNULL(OrderNo,0))+1 FROM UsState));""
+				, ""INSERT INTO UsState (ChoiceName, Abbreviation, OrderNo) VALUES ('North Dakota', 'ND', (SELECT MAX(IFNULL(OrderNo,0))+1 FROM UsState));""
 			]
 		}
 		, {
@@ -150,7 +150,7 @@ namespace brashcli.Process
 					]
 					, ""References"": [
 						{
-							""ColumnName"": ""PhoneTypeRef""
+							""ColumnName"": ""RecordPhoneType""
 							, ""TableName"": ""PhoneType""
 						}
 					]
@@ -166,11 +166,11 @@ namespace brashcli.Process
 					]
 					, ""References"": [
 						{
-							""ColumnName"": ""State""
+							""ColumnName"": ""RecordUsState""
 							, ""TableName"": ""UsState""
 						}
 						, {
-							""ColumnName"": ""AddressType""
+							""ColumnName"": ""RecordAddressType""
 							, ""TableName"": ""AddressType""
 						}
 					]
