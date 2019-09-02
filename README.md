@@ -78,7 +78,7 @@ Each object represents a table.
     * I = Integer
     * B = Blob
     * C = Clob
-* References - is an array of foriegn keys to other tables
+* References - is an array of foriegn keys to other tables. Pro tip - add reference structures to the top of the list as you define your entities.  Tables are created in top down order, parent than children.
   * ColumnName - name of the column on the table being defined
   * TableName - name of the table being reference, column name is inferred from referenced table's IdPattern
 * Extensions - is an array of single row child tables (1 to 1). _Think star schema pattern_

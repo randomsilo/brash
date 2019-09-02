@@ -20,6 +20,7 @@ namespace brashcli.Process
 		private string _pathSql;
 		private DomainStructure _domainStructure;
 		private Dictionary<string,string> _tablePrimaryKeyDataType;
+		private List<string> _tableCreationOrder;
         public SqliteGenerationProcess(ILogger logger, SqliteGeneration options)
         {
             _logger = logger;
@@ -27,6 +28,7 @@ namespace brashcli.Process
 			_pathProject = System.IO.Path.GetDirectoryName(_options.FilePath);
 			_pathSql = System.IO.Path.Combine(_pathProject, "sql");
 			_tablePrimaryKeyDataType = new Dictionary<string, string>();
+			_tableCreationOrder = new List<string>();
         }
 
         public int Execute()
@@ -41,6 +43,7 @@ namespace brashcli.Process
 					ReadDataJsonFile();
                     MakeSqlDirectory();
 					CreateSqlFileCreateTable();
+					MakeCombinedSqlFileScript();
                 }
                 catch(Exception exception)
                 {
@@ -86,6 +89,7 @@ namespace brashcli.Process
 			MakeCreateTableSql(parent, entry);
 			AddAdditionalSql(entry);
 			AddChoicesSql(entry);
+			AddTableName(entry);
 			
 			if (entry.Children != null && entry.Children.Count > 0)
 			{
@@ -142,10 +146,12 @@ namespace brashcli.Process
 				string fileNamePath = MakeEntryFilePath(entry);
 				StringBuilder sqlStatements = new StringBuilder();
 
+				sqlStatements.Append("--- Additional Sql");
 				foreach( var sql in entry.AdditionalSqlStatements)
 				{
 					sqlStatements.Append( "\n" + sql);
 				}
+				sqlStatements.Append("\n\n");
 
 				System.IO.File.AppendAllText( fileNamePath, sqlStatements.ToString());
 			}	
@@ -158,18 +164,27 @@ namespace brashcli.Process
 				string fileNamePath = MakeEntryFilePath(entry);
 				StringBuilder sqlStatements = new StringBuilder();
 
+				sqlStatements.Append("--- Choices");
 				foreach( var choice in entry.Choices)
 				{
 					sqlStatements.Append( $"\nINSERT INTO {entry.Name} (ChoiceName, OrderNo) VALUES ('{choice}', (SELECT MAX(IFNULL(OrderNo,0))+1 FROM {entry.Name}));");
 				}
+				sqlStatements.Append("\n\n");
 
 				System.IO.File.AppendAllText( fileNamePath, sqlStatements.ToString());
 			}	
 		}
 
+		private void AddTableName(Structure entry)
+		{
+			_tableCreationOrder.Add(entry.Name);
+		}
+
 		private string GetTemplateCreateTableSql()
         {
-            return @"
+            return @"---
+--- {{Domain}}.{{Entry.Name}}
+---
 CREATE TABLE {{Domain}}.{{Entry.Name}} (
 	{{>IdPattern}}
 	{{>ParentPattern}}
@@ -181,6 +196,8 @@ CREATE TABLE {{Domain}}.{{Entry.Name}} (
 	{{>ForeignKeyReferencePattern}}
 
 );
+---
+
 ";
 		}
 
@@ -521,6 +538,21 @@ CREATE TABLE {{Domain}}.{{Entry.Name}} (
 			sb.Append( $"\n\t, PerformedReason TEXT");
 
             return sb.ToString();
+		}
+
+		private void MakeCombinedSqlFileScript()
+		{
+			var fileNamePath = System.IO.Path.Combine(_pathSql, "combine.sh");
+			StringBuilder cmd = new StringBuilder();
+
+			cmd.Append("cat ");
+			foreach(var file in _tableCreationOrder)
+			{
+				cmd.Append($"\\\n{file}.sql ");
+			}
+			cmd.Append("> ALL.sql");
+
+			System.IO.File.WriteAllText( fileNamePath, cmd.ToString());
 		}
 
     }
