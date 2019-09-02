@@ -167,7 +167,7 @@ namespace brashcli.Process
 				sqlStatements.Append("--- Choices");
 				foreach( var choice in entry.Choices)
 				{
-					sqlStatements.Append( $"\nINSERT INTO {entry.Name} (ChoiceName, OrderNo) VALUES ('{choice}', (SELECT MAX(IFNULL(OrderNo,0))+1 FROM {entry.Name}));");
+					sqlStatements.Append( $"\nINSERT INTO {entry.Name} (ChoiceName, OrderNo) VALUES ('{choice}', (SELECT IFNULL(MAX(OrderNo),0)+1 FROM {entry.Name}));");
 				}
 				sqlStatements.Append("\n\n");
 
@@ -185,7 +185,7 @@ namespace brashcli.Process
             return @"---
 --- {{Domain}}.{{Entry.Name}}
 ---
-CREATE TABLE {{Domain}}.{{Entry.Name}} (
+CREATE TABLE {{Entry.Name}} (
 	{{>IdPattern}}
 	{{>ParentPattern}}
     {{>AdditionalPatterns}}
@@ -485,18 +485,18 @@ CREATE TABLE {{Domain}}.{{Entry.Name}} (
 
 		private string GetTemplateForeignKeyReferencePatternAskId( Reference reference)
         {
-            return $"\n\t, FOREIGN KEY ({reference.ColumnName}IdRef) REFERENCES {reference.TableName}({reference.TableName}Id) ON DELETE NULL";
+            return $"\n\t, FOREIGN KEY ({reference.ColumnName}IdRef) REFERENCES {reference.TableName}({reference.TableName}Id) ON DELETE SET NULL";
 		}
 
 		private string GetTemplateForeignKeyReferencePatternAskGuid( Reference reference)
         {
-            return $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.TableName}Guid) ON DELETE NULL";
+            return $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.TableName}Guid) ON DELETE SET NULL";
 		}
 
 		private string GetTemplateForeignKeyReferencePatternAskVersion( Reference reference)
         {
 			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.TableName}Guid) ON DELETE NULL");
+			sb.Append( $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.TableName}Guid) ON DELETE SET NULL");
             return sb.ToString();
 		}
 

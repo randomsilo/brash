@@ -112,9 +112,9 @@ namespace brashcli.Process
 				{ ""Name"": ""Abbreviation"", ""Type"": ""S"" }
 			]
 			, ""AdditionalSqlStatements"": [
-				""INSERT INTO UsState (ChoiceName, Abbreviation, OrderNo) VALUES ('Nebraska', 'NE', (SELECT MAX(IFNULL(OrderNo,0))+1 FROM UsState));""
-				, ""INSERT INTO UsState (ChoiceName, Abbreviation, OrderNo) VALUES ('Iowa', 'IA', (SELECT MAX(IFNULL(OrderNo,0))+1 FROM UsState));""
-				, ""INSERT INTO UsState (ChoiceName, Abbreviation, OrderNo) VALUES ('North Dakota', 'ND', (SELECT MAX(IFNULL(OrderNo,0))+1 FROM UsState));""
+				""INSERT INTO UsState (ChoiceName, Abbreviation, OrderNo) VALUES ('Nebraska', 'NE', (SELECT IFNULL(MAX(OrderNo),0)+1 FROM UsState));""
+				, ""INSERT INTO UsState (ChoiceName, Abbreviation, OrderNo) VALUES ('Iowa', 'IA', (SELECT IFNULL(MAX(OrderNo),0)+1 FROM UsState));""
+				, ""INSERT INTO UsState (ChoiceName, Abbreviation, OrderNo) VALUES ('North Dakota', 'ND', (SELECT IFNULL(MAX(OrderNo),0)+1 FROM UsState));""
 			]
 		}
 		, {
