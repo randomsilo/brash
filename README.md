@@ -44,14 +44,6 @@ dotnet run bs-html --file /shop/randomsilo/PollBook/structure.json
 
 ```
 
-## Deploy NuGet Package
-
-```bash
-cd /shop/randomsilo/brash/Brash/bin/Debug/
-dotnet nuget push Brash.1.0.0.nupkg -k oy2f6zfjelxyfzypku7qjwze4d3ev2quhm6zvresyvywka -s https://api.nuget.org/v3/index.json
-
-```
-
 ## Data File
 
 The generated data file is used to build the database structure, domain classes, repository classes, and api routes.
