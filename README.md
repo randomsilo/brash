@@ -1,7 +1,8 @@
-# hasty
+# brash
 
-Hasty is a tool for quickly building sqlite backed APIs
-
+Brash is a tool for quickly building an API project.
+It is evolving to include other boilerplate code including markup.
+The code is increase productivity.
 
 ## How to Use
 
@@ -10,36 +11,36 @@ Hasty is a tool for quickly building sqlite backed APIs
 cd ./brashcli
 
 # create project init script
-dotnet run project-init -n PollBook -d /shop/randomsilo/PollBook
+dotnet run project-init -n MyProject -d /shop/randomsilo/MyProject
 
 # create sample json file
-dotnet run data-init -n PollBook -d /shop/randomsilo/PollBook
+dotnet run data-init -n MyProject -d /shop/randomsilo/MyProject
 
 # make c# projects
-# cd /shop/randomsilo/PollBook
+# cd /shop/randomsilo/MyProject
 # . ./init.sh
 
 # modify structure.json to fit project needs
 
 # generate sqlite files 
 ## mysql and sql server are future features
-dotnet run sqlite-gen --file /shop/randomsilo/PollBook/structure.json
+dotnet run sqlite-gen --file /shop/randomsilo/MyProject/structure.json
 
 # generate domain classes (cs is the c# prefix)
-dotnet run cs-domain-gen --file /shop/randomsilo/PollBook/structure.json
+dotnet run cs-domain-gen --file /shop/randomsilo/MyProject/structure.json
 
 # generate repository classes
-dotnet run cs-repo-gen --file /shop/randomsilo/PollBook/structure.json
+dotnet run cs-repo-gen --file /shop/randomsilo/MyProject/structure.json
 
 # generate api classes
-dotnet run cs-api-gen --file /shop/randomsilo/PollBook/structure.json
+dotnet run cs-api-gen --file /shop/randomsilo/MyProject/structure.json
 
 # generate xunit classes
-dotnet run cs-test-gen --file /shop/randomsilo/PollBook/structure.json
+dotnet run cs-test-gen --file /shop/randomsilo/MyProject/structure.json
 
 # generate bootstrap v4 cards, forms, and drop down choices
 ## materialcss, foundation are future features
-dotnet run bs-html --file /shop/randomsilo/PollBook/structure.json
+dotnet run bs-html --file /shop/randomsilo/MyProject/structure.json
 
 
 ```
