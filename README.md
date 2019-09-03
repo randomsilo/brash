@@ -23,20 +23,22 @@ dotnet run data-init -n MyProject -d /shop/randomsilo/MyProject
 # modify structure.json to fit project needs
 
 # generate sqlite files 
-## mysql and sql server are future features
+## - mysql and sql server are future features
+## - run combine.sh in the sql directory to create a single file for execution
+##   Add additional files (indexes, data seeding), if necessary
 dotnet run sqlite-gen --file /shop/randomsilo/MyProject/structure.json
 
 # generate domain classes (cs is the c# prefix)
-dotnet run cs-domain-gen --file /shop/randomsilo/MyProject/structure.json
+dotnet run cs-domain --file /shop/randomsilo/MyProject/structure.json
 
 # generate repository classes
-dotnet run cs-repo-gen --file /shop/randomsilo/MyProject/structure.json
+dotnet run cs-repo --file /shop/randomsilo/MyProject/structure.json
 
 # generate api classes
-dotnet run cs-api-gen --file /shop/randomsilo/MyProject/structure.json
+dotnet run cs-api --file /shop/randomsilo/MyProject/structure.json
 
 # generate xunit classes
-dotnet run cs-test-gen --file /shop/randomsilo/MyProject/structure.json
+dotnet run cs-test --file /shop/randomsilo/MyProject/structure.json
 
 # generate bootstrap v4 cards, forms, and drop down choices
 ## materialcss, foundation are future features
