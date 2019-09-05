@@ -21,6 +21,7 @@ namespace brashcli.Process
 		private DomainStructure _domainStructure;
 		private Dictionary<string,string> _tablePrimaryKeyDataType = new Dictionary<string, string>();
 		StringBuilder _fields = new StringBuilder();
+		StringBuilder _interfaceImplementations = new StringBuilder();
 		List<string> _interfaces = new List<string>();
 		
         public CsDomainGenerationProcess(ILogger logger, CsDomainGeneration options)
@@ -124,6 +125,8 @@ namespace brashcli.Process
 			AnalyzeStructure(parent, entry);
 
 			Handlebars.RegisterTemplate("Interfaces", GetInterfaces());
+			Handlebars.RegisterTemplate("InterfacesImplementations", GetInterfacesImplementations());
+			Handlebars.RegisterTemplate("Fields", GetFields());
 			// Handlebars.RegisterTemplate("IdPattern", GetIdPattern(entry));
 			// Handlebars.RegisterTemplate("ParentPattern", GetParentPattern(parent));
 			// Handlebars.RegisterTemplate("AdditionalPatterns", GetAdditionalPattern(entry));
@@ -143,12 +146,17 @@ namespace brashcli.Process
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Brash.Model;
 
 namespace {{Domain}}.Domain.Model
 {
     public class {{Entry.Name}} : {{>Interfaces}}
     {
-		
+
+		{{>Fields}}
+
+		{{>InterfacesImplementations}}
+
     }
 }
 ";
@@ -172,8 +180,16 @@ namespace {{Domain}}.Domain.Model
 
 		private void AnalyzeStructure(Structure parent, Structure entry)
 		{
+			// clear contents
 			_interfaces = new List<string>();
+			_interfaceImplementations = new StringBuilder();
+			_fields = new StringBuilder();
+
 			StringBuilder template = new StringBuilder();
+
+			_interfaceImplementations.Append("\n\n\t\t// Interface Implementations");
+
+			_fields.Append("\t\t// IdPattern");
 			switch(entry.IdPattern)
 			{
 				case Global.IDPATTERN_ASKGUID:
@@ -182,6 +198,12 @@ namespace {{Domain}}.Domain.Model
 					_fields.Append("\n\t\t");
 					_fields.Append($"Guid? {entry.Name}Guid");
 					_fields.Append(" { get; set; }");
+
+					_interfaceImplementations.Append("\n\t\tpublic string GetAskGuidPropertyName()");
+					_interfaceImplementations.Append("\n\t\t{");
+					_interfaceImplementations.Append($"\n\t\t	return \"{entry.Name}Guid\";");
+					_interfaceImplementations.Append("\n\t\t}");
+
 					break;
 				case Global.IDPATTERN_ASKVERSION:
 					_interfaces.Add("IAskVersion");
@@ -197,6 +219,11 @@ namespace {{Domain}}.Domain.Model
 					_fields.Append("\n\t\t");
 					_fields.Append($"bool? IsCurrent");
 					_fields.Append(" { get; set; }");
+
+					_interfaceImplementations.Append("\n\t\tpublic string GetAskVersionPropertyName()");
+					_interfaceImplementations.Append("\n\t\t{");
+					_interfaceImplementations.Append($"\n\t\t	return \"{entry.Name}Guid\";");
+					_interfaceImplementations.Append("\n\t\t}");
 					break;
 				case Global.IDPATTERN_ASKID:
 				default:
@@ -205,11 +232,17 @@ namespace {{Domain}}.Domain.Model
 					_fields.Append("\n\t\t");
 					_fields.Append($"int? {entry.Name}Id");
 					_fields.Append(" { get; set; }");
+
+					_interfaceImplementations.Append("\n\t\tpublic string GetAskIdPropertyName()");
+					_interfaceImplementations.Append("\n\t\t{");
+					_interfaceImplementations.Append($"\n\t\t	return \"{entry.Name}Id\";");
+					_interfaceImplementations.Append("\n\t\t}");
 					break;
 			}
 
 			if (parent != null)
 			{
+				_fields.Append("\n\n\t\t// Parent IdPattern");
 				switch(parent.IdPattern)
 				{
 					case Global.IDPATTERN_ASKGUID:
@@ -218,6 +251,13 @@ namespace {{Domain}}.Domain.Model
 						_fields.Append("\n\t\t");
 						_fields.Append($"Guid? {parent.Name}Guid");
 						_fields.Append(" { get; set; }");
+
+
+						_interfaceImplementations.Append("\n\t\t");
+						_interfaceImplementations.Append("\n\t\tpublic string GetAskGuidParentPropertyName()");
+						_interfaceImplementations.Append("\n\t\t{");
+						_interfaceImplementations.Append($"\n\t\t	return \"{parent.Name}Guid\";");
+						_interfaceImplementations.Append("\n\t\t}");
 						break;
 					case Global.IDPATTERN_ASKVERSION:
 						_interfaces.Add("IAskVersionChild");
@@ -229,6 +269,12 @@ namespace {{Domain}}.Domain.Model
 						_fields.Append("\n\t\t");
 						_fields.Append($"int? {parent.Name}RecordVersion");
 						_fields.Append(" { get; set; }");
+
+						_interfaceImplementations.Append("\n\t\t");
+						_interfaceImplementations.Append("\n\t\tpublic string GetAskVersionParentPropertyName()");
+						_interfaceImplementations.Append("\n\t\t{");
+						_interfaceImplementations.Append($"\n\t\t	return \"{parent.Name}Guid\";");
+						_interfaceImplementations.Append("\n\t\t}");
 						break;
 					case Global.IDPATTERN_ASKID:
 					default:
@@ -237,9 +283,20 @@ namespace {{Domain}}.Domain.Model
 						_fields.Append("\n\t\t");
 						_fields.Append($"int? {parent.Name}Id");
 						_fields.Append(" { get; set; }");
+
+						_interfaceImplementations.Append("\n\t\t");
+						_interfaceImplementations.Append("\n\t\tpublic string GetAskIdParentPropertyName()");
+						_interfaceImplementations.Append("\n\t\t{");
+						_interfaceImplementations.Append($"\n\t\t	return \"{parent.Name}Id\";");
+						_interfaceImplementations.Append("\n\t\t}");
 						break;
 				}
 			}
+
+			// fields
+
+
+			// references
 
 		}
 
@@ -258,6 +315,16 @@ namespace {{Domain}}.Domain.Model
 			}
 
 			return template.ToString();
+		}
+
+		private string GetInterfacesImplementations()
+		{
+			return _interfaceImplementations.ToString();
+		}
+
+		private string GetFields()
+		{
+			return _fields.ToString();
 		}
 		
 		private string GetIdPattern(Structure entry)
