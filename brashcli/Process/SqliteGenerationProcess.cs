@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using CommandLine;
 using Newtonsoft.Json;
 using Serilog;
-using HandlebarsDotNet;
 using brashcli.Option;
 using brashcli.Model;
 
@@ -26,7 +25,7 @@ namespace brashcli.Process
             _logger = logger;
             _options = options;
 			_pathProject = System.IO.Path.GetDirectoryName(_options.FilePath);
-			_pathSql = System.IO.Path.Combine(_pathProject, "sql");
+			_pathSql = System.IO.Path.Combine(_pathProject, "sqlite");
         }
 
         public int Execute()
@@ -114,27 +113,24 @@ namespace brashcli.Process
 		private void MakeCreateTableSql(Structure parent, Structure entry)
 		{
 			string fileNamePath = MakeEntryFilePath(entry);
-			var tableData = new TableData() 
-			{
-				Domain = _domainStructure.Domain,
-				Parent = parent,
-				Entry = entry
-			};
-
+			StringBuilder lines = new StringBuilder();
+			
 			SaveTableIdDataType(entry);
-			Handlebars.RegisterTemplate("IdPattern", GetIdPattern(entry));
-			Handlebars.RegisterTemplate("ParentPattern", GetParentPattern(parent));
-			Handlebars.RegisterTemplate("AdditionalPatterns", GetAdditionalPattern(entry));
-			Handlebars.RegisterTemplate("Fields", GetFieldsPattern(entry));
-			Handlebars.RegisterTemplate("References", GetReferences(entry));
-			Handlebars.RegisterTemplate("TrackingPattern", GetTrackingPattern(entry));
-			Handlebars.RegisterTemplate("ForeignKeyPattern", GetForeignKeyPattern(parent));
-			Handlebars.RegisterTemplate("ForeignKeyReferencePattern", GetForeignKeyReferencePattern(entry));
-			var template = Handlebars.Compile( GetTemplateCreateTableSql());
 
-            var result = template( tableData);
-
-			System.IO.File.WriteAllText( fileNamePath, result);
+			lines.Append( TplCreateTableStart(
+				_domainStructure.Domain
+				, entry.Name
+				, GetIdPattern(entry)
+				, GetParentPattern(parent)
+				, GetAdditionalPattern(entry)
+				, GetFieldsPattern(entry)
+				, GetReferences(entry)
+				, GetTrackingPattern(entry)
+				, GetForeignKeyPattern(parent)
+				, GetForeignKeyReferencePattern(entry)
+			));
+			
+			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
 		}
 
 		private void AddAdditionalSql(Structure entry)
@@ -178,26 +174,42 @@ namespace brashcli.Process
 			_tableCreationOrder.Add(entry.Name);
 		}
 
-		private string GetTemplateCreateTableSql()
+		public string TplCreateTableStart(
+			string domain
+			, string entityName
+			, string idPattern
+			, string parentPattern
+			, string additionalPattern
+			, string fieldsPattern
+			, string references
+			, string trackingPattern
+			, string foreignKeyPattern
+			, string foreignKeyReferencePattern
+			)
         {
-            return @"---
---- {{Domain}}.{{Entry.Name}}
----
-CREATE TABLE {{Entry.Name}} (
-	{{>IdPattern}}
-	{{>ParentPattern}}
-    {{>AdditionalPatterns}}
-	{{>Fields}}
-	{{>References}}
-	{{>TrackingPattern}}
-	{{>ForeignKeyPattern}}
-	{{>ForeignKeyReferencePattern}}
+            StringBuilder lines = new StringBuilder();
 
-);
----
+            lines.Append($"---");
+            lines.Append($"\n--- {domain}.{entityName}");
+            lines.Append($"\n---");
+            lines.Append($"\nCREATE TABLE {entityName} (");
+			lines.Append($"\n");
 
-";
-		}
+			lines.Append(idPattern);
+			lines.Append(parentPattern);
+			lines.Append(additionalPattern);
+			lines.Append(fieldsPattern);
+			lines.Append(references);
+			lines.Append(trackingPattern);
+			lines.Append(foreignKeyPattern);
+			lines.Append(foreignKeyReferencePattern);
+
+            lines.Append($"\n);");
+            lines.Append($"\n---");
+            lines.Append($"\n");
+
+            return lines.ToString();
+        }
 
 		private void SaveTableIdDataType(Structure entry)
 		{

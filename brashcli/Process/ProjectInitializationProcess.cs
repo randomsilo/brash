@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using CommandLine;
 using Newtonsoft.Json;
 using Serilog;
-using HandlebarsDotNet;
 using brashcli.Option;
 
 namespace brashcli.Process
@@ -62,89 +61,86 @@ namespace brashcli.Process
 
         private void MakeProjectScript()
         {
-            var template = Handlebars.Compile( GetTemplateProjectScript());
-            var result = template( _options);
-
-            System.IO.File.WriteAllText( $"{_options.DirectoryName}/init.sh", result);
+            System.IO.File.WriteAllText( $"{_options.DirectoryName}/init.sh", TplProjectScript(_options.ProjectName));
         }
 
-        private string GetTemplateProjectScript()
+        private string TplProjectScript(string projectName)
         {
             return @"
 #/bin/bash
-
+PROJECT=" + projectName + @"
 # brashcli - generated project initialization script
 
 ## File System
-mkdir -p {{ProjectName}}.Api
-mkdir -p {{ProjectName}}.Domain
-mkdir -p {{ProjectName}}.Infrastructure
-mkdir -p {{ProjectName}}.Infrastructure.Test
+mkdir -p $PROJECT.Api
+mkdir -p $PROJECT.Domain
+mkdir -p $PROJECT.Infrastructure
+mkdir -p $PROJECT.Infrastructure.Test
 
 ## Solution
 dotnet new sln
 
 ## Project
-cd {{ProjectName}}.Api
+cd $PROJECT.Api
 dotnet new webapi
 cd ..
 
-cd {{ProjectName}}.Domain
+cd $PROJECT.Domain
 dotnet new classlib
 cd ..
 
-cd {{ProjectName}}.Infrastructure
+cd $PROJECT.Infrastructure
 dotnet new classlib
 cd ..
 
-cd {{ProjectName}}.Infrastructure.Test
+cd $PROJECT.Infrastructure.Test
 dotnet new xunit
 cd ..
 
 ## Projects to Solution
-dotnet sln {{ProjectName}}.sln add {{ProjectName}}.Api/{{ProjectName}}.Api.csproj
-dotnet sln {{ProjectName}}.sln add {{ProjectName}}.Domain/{{ProjectName}}.Domain.csproj
-dotnet sln {{ProjectName}}.sln add {{ProjectName}}.Infrastructure/{{ProjectName}}.Infrastructure.csproj
-dotnet sln {{ProjectName}}.sln add {{ProjectName}}.Infrastructure.Test/{{ProjectName}}.Infrastructure.Test.csproj
+dotnet sln $PROJECT.sln add $PROJECT.Api/$PROJECT.Api.csproj
+dotnet sln $PROJECT.sln add $PROJECT.Domain/$PROJECT.Domain.csproj
+dotnet sln $PROJECT.sln add $PROJECT.Infrastructure/$PROJECT.Infrastructure.csproj
+dotnet sln $PROJECT.sln add $PROJECT.Infrastructure.Test/$PROJECT.Infrastructure.Test.csproj
 
 ## References
 
 ### API
-dotnet add {{ProjectName}}.Api/{{ProjectName}}.Api.csproj reference {{ProjectName}}.Domain/{{ProjectName}}.Domain.csproj
-dotnet add {{ProjectName}}.Api/{{ProjectName}}.Api.csproj reference {{ProjectName}}.Infrastructure/{{ProjectName}}.Infrastructure.csproj
+dotnet add $PROJECT.Api/$PROJECT.Api.csproj reference $PROJECT.Domain/$PROJECT.Domain.csproj
+dotnet add $PROJECT.Api/$PROJECT.Api.csproj reference $PROJECT.Infrastructure/$PROJECT.Infrastructure.csproj
 
 ### Domain
 
 ### Infrastructure
-dotnet add {{ProjectName}}.Infrastructure/{{ProjectName}}.Infrastructure.csproj reference {{ProjectName}}.Domain/{{ProjectName}}.Domain.csproj
+dotnet add $PROJECT.Infrastructure/$PROJECT.Infrastructure.csproj reference $PROJECT.Domain/$PROJECT.Domain.csproj
 
 ### Infrastructure Test
-dotnet add {{ProjectName}}.Infrastructure.Test/{{ProjectName}}.Infrastructure.Test.csproj reference {{ProjectName}}.Domain/{{ProjectName}}.Domain.csproj
-dotnet add {{ProjectName}}.Infrastructure.Test/{{ProjectName}}.Infrastructure.Test.csproj reference {{ProjectName}}.Infrastructure/{{ProjectName}}.Infrastructure.csproj
+dotnet add $PROJECT.Infrastructure.Test/$PROJECT.Infrastructure.Test.csproj reference $PROJECT.Domain/$PROJECT.Domain.csproj
+dotnet add $PROJECT.Infrastructure.Test/$PROJECT.Infrastructure.Test.csproj reference $PROJECT.Infrastructure/$PROJECT.Infrastructure.csproj
 
 ## Packages
 
-cd {{ProjectName}}.Domain
+cd $PROJECT.Domain
 dotnet add package Dapper
 dotnet add package Serilog
-#dotnet add package Brash.Domain
+dotnet add package Brash
 cd ..
 
-cd {{ProjectName}}.Infrastructure
+cd $PROJECT.Infrastructure
 dotnet add package System.Data.SQLite
 dotnet add package Dapper
 dotnet add package Serilog
-#dotnet add package Brash.Infrastructure
+dotnet add package Brash
 cd ..
 
-cd {{ProjectName}}.Infrastructure.Test
+cd $PROJECT.Infrastructure.Test
 dotnet add package Bogus
 dotnet add package Serilog
 dotnet add package Serilog.Sinks.Console
 dotnet add package Serilog.Sinks.File
 cd ..
 
-cd {{ProjectName}}.Api
+cd $PROJECT.Api
 dotnet add package Dapper
 dotnet add package Serilog
 dotnet add package Serilog.Sinks.Console

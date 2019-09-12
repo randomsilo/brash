@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using CommandLine;
 using Newtonsoft.Json;
 using Serilog;
-using HandlebarsDotNet;
 using brashcli.Option;
 
 namespace brashcli.Process
@@ -60,13 +59,10 @@ namespace brashcli.Process
 
         private void MakeDataJsonFile()
         {
-            var template = Handlebars.Compile( GetTemplateDataJsonFile());
-            var result = template( _options);
-
-            System.IO.File.WriteAllText( $"{_options.DirectoryName}/structure.json", result);
+            System.IO.File.WriteAllText( $"{_options.DirectoryName}/structure.json", TplDataJsonFile());
         }
 
-        private string GetTemplateDataJsonFile()
+        private string TplDataJsonFile()
         {
             return @"{ 
     ""Domain"": """ + _options.ProjectName + @"""

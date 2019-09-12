@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using CommandLine;
 using Newtonsoft.Json;
 using Serilog;
-using HandlebarsDotNet;
 using brashcli.Option;
 using brashcli.Model;
 
@@ -114,52 +113,21 @@ namespace brashcli.Process
 		private void MakeDomainModelFileCs(Structure parent, Structure entry)
 		{
 			string fileNamePath = MakeEntryFilePath(entry);
-			var tableData = new TableData() 
-			{
-				Domain = _domainStructure.Domain,
-				Parent = parent,
-				Entry = entry
-			};
+			StringBuilder lines = new StringBuilder();
 
 			SaveTableIdDataType(entry);
 			AnalyzeStructure(parent, entry);
 
-			Handlebars.RegisterTemplate("Interfaces", GetInterfaces());
-			Handlebars.RegisterTemplate("InterfacesImplementations", GetInterfacesImplementations());
-			Handlebars.RegisterTemplate("Fields", GetFields());
-			// Handlebars.RegisterTemplate("IdPattern", GetIdPattern(entry));
-			// Handlebars.RegisterTemplate("ParentPattern", GetParentPattern(parent));
-			// Handlebars.RegisterTemplate("AdditionalPatterns", GetAdditionalPattern(entry));
-			// Handlebars.RegisterTemplate("Fields", GetFieldsPattern(entry));
-			// Handlebars.RegisterTemplate("References", GetReferences(entry));
-			// Handlebars.RegisterTemplate("TrackingPattern", GetTrackingPattern(entry));
-			var template = Handlebars.Compile( GetTemplateDomainModelFileCs());
+			lines.Append( TplCsDomain(
+				_domainStructure.Domain
+				, entry.Name
+				, GetInterfaces()
+				, GetInterfacesImplementations()
+				, GetFields()
+			));
 
-            var result = template( tableData);
-
-			System.IO.File.WriteAllText( fileNamePath, result);
+			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
 		}
-
-		private string GetTemplateDomainModelFileCs()
-        {
-            return @"using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using Brash.Model;
-
-namespace {{Domain}}.Domain.Model
-{
-    public class {{Entry.Name}} : {{>Interfaces}}
-    {
-
-		{{>Fields}}
-
-		{{>InterfacesImplementations}}
-
-    }
-}
-";
 
 /*
 		{{>IdPattern}}
@@ -171,7 +139,37 @@ namespace {{Domain}}.Domain.Model
 
 		{{>InterfaceImplementations}}
  */
-		}
+
+		public string TplCsDomain(
+			string domain
+			, string entityName
+			, string interfaces
+			, string interfacesImplementations
+			, string fields
+			)
+        {
+            StringBuilder lines = new StringBuilder();
+
+			lines.Append($"\nusing System;");
+			lines.Append($"\nusing System.Collections;");
+			lines.Append($"\nusing System.Collections.Generic;");
+			lines.Append($"\nusing System.Linq;");
+			lines.Append($"\nusing Brash.Model;");
+			lines.Append($"\n");
+			lines.Append($"\nnamespace {domain}.Domain.Model");
+			lines.Append( "\n{");
+			lines.Append($"\n\tpublic class {entityName} : {interfaces}");
+			lines.Append( "\n\t{");
+			lines.Append($"\n");
+			lines.Append( fields);
+			lines.Append($"\n");
+			lines.Append( interfacesImplementations);
+			lines.Append($"\n");
+			lines.Append( "\n\t}");
+			lines.Append( "\n}");
+
+            return lines.ToString();
+        }
 
 		private void SaveTableIdDataType(Structure entry)
 		{
