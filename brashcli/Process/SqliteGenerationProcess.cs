@@ -389,7 +389,7 @@ namespace brashcli.Process
 			{
 				foreach( var reference in entry.References)
 				{
-					template.Append( GetTemplateReference(reference, _tablePrimaryKeyDataType[entry.Name]));
+					template.Append( GetTemplateReference(reference, _tablePrimaryKeyDataType[reference.TableName]));
 				}
 			}
 
@@ -407,7 +407,7 @@ namespace brashcli.Process
 					break;
 				case Global.IDPATTERN_ASKVERSION:
 					template = $"\n\t, {reference.ColumnName}GuidRef TEXT";
-					template = $"\n\t, {reference.ColumnName}RecordVersionRef INTEGER";
+					template = $"\n\t, {reference.ColumnName}RecordVersionRef REAL";
 					break;
 				case Global.IDPATTERN_ASKID:
 				default:
@@ -432,7 +432,7 @@ namespace brashcli.Process
 			StringBuilder sb = new StringBuilder();
 			sb.Append( $"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT");
 			sb.Append( $"\n\t, {entry.Name}Guid TEXT UNIQUE");
-			sb.Append( $"\n\t, {entry.Name}RecordVersion INTEGER");
+			sb.Append( $"\n\t, {entry.Name}RecordVersion REAL");
 			sb.Append( $"\n\t, IsCurrent INTEGER");
             return sb.ToString();
 		}
@@ -451,7 +451,7 @@ namespace brashcli.Process
         {
 			StringBuilder sb = new StringBuilder();
 			sb.Append( $"\n\t, {entry.Name}Guid TEXT");
-			sb.Append( $"\n\t, {entry.Name}RecordVersion INTEGER");
+			sb.Append( $"\n\t, {entry.Name}RecordVersion REAL");
             return sb.ToString();
 		}
 
@@ -514,7 +514,7 @@ namespace brashcli.Process
         {
 			StringBuilder sb = new StringBuilder();
 			sb.Append( $"\n\t, ChoiceName TEXT");
-			sb.Append( $"\n\t, OrderNo INTEGER");
+			sb.Append( $"\n\t, OrderNo REAL");
 			sb.Append( $"\n\t, IsDisabled INTEGER");
             return sb.ToString();
 		}

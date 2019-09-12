@@ -129,17 +129,6 @@ namespace brashcli.Process
 			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
 		}
 
-/*
-		{{>IdPattern}}
-		{{>ParentPattern}}
-		{{>AdditionalPatterns}}
-		{{>Fields}}
-		{{>References}}
-		{{>TrackingPattern}}
-
-		{{>InterfaceImplementations}}
- */
-
 		public string TplCsDomain(
 			string domain
 			, string entityName
@@ -187,6 +176,19 @@ namespace brashcli.Process
 
 			_interfaceImplementations.Append("\n\n\t\t// Interface Implementations");
 
+			ProcessIdPattern( entry);
+			ProcessParentPattern( parent, entry);
+			ProcessAdditionalPatterns( entry);
+			ProcessFields( entry);
+			ProcessReferences( entry);	
+			ProcessTrackingPattern( entry);
+
+			// TODO Add extension holders
+			// TODO Add children holders
+		}
+
+		private void ProcessIdPattern(Structure entry)
+		{
 			_fields.Append("\t\t// IdPattern");
 			switch(entry.IdPattern)
 			{
@@ -237,7 +239,10 @@ namespace brashcli.Process
 					_interfaceImplementations.Append("\n\t\t}");
 					break;
 			}
+		}
 
+		private void ProcessParentPattern(Structure parent, Structure entity)
+		{
 			if (parent != null)
 			{
 				_fields.Append("\n\n\t\t// Parent IdPattern");
@@ -290,12 +295,191 @@ namespace brashcli.Process
 						break;
 				}
 			}
+		}
 
-			// fields
+		private void ProcessAdditionalPatterns(Structure entity)
+		{
+			if (entity.AdditionalPatterns != null)
+			{
+				_fields.Append("\n\n\t\t// Additional Patterns");
+				foreach( string pattern in entity.AdditionalPatterns)
+				{
+					switch(pattern)
+					{
+						case Global.ADDITIONALPATTERN_CHOICE:
+							_fields.Append("\n\t\t");
+							_fields.Append($"public string ChoiceName");
+							_fields.Append(" { get; set; }");
+
+							_fields.Append("\n\t\t");
+							_fields.Append($"public decimal? OrderNo");
+							_fields.Append(" { get; set; }");
+
+							_fields.Append("\n\t\t");
+							_fields.Append($"public bool? IsDisabled");
+							_fields.Append(" { get; set; }");
+							break;
+						default:
+							string msg = $"Additional Pattern: {pattern} not found.  Entity {entity.Name} has an error.";
+							_logger.Warning(msg);
+							throw new ArgumentException(msg);
+					}
+				}
+			}
+		}
+
+		private void ProcessFields(Structure entity)
+		{
+			if (entity.Fields != null)
+			{
+				_fields.Append("\n\n\t\t// Fields");
+				foreach( var field in entity.Fields)
+				{
+					AddField( field);
+				}
+			}
+		}
+
+		private void AddField(Field field)
+		{
+			_fields.Append("\n\t\tpublic ");
+			switch(field.Type)
+			{
+				case "D":
+				case "N":
+					_fields.Append("DateTime?");
+					break;
+				case "F":
+					_fields.Append("decimal?");
+					break;
+				case "I":
+					_fields.Append("int?");
+					break;
+				case "B":
+					_fields.Append("byte[]");
+					break;
+				case "S":
+				case "C":
+				case "G":
+				default:
+					_fields.Append("string");
+					break;
+			}
+			_fields.Append($" {field.Name}");
+			_fields.Append(" { get; set; }");
+		}
 
 
-			// references
+		private void ProcessReferences(Structure entity)
+		{
+			if (entity.References != null)
+			{
+				_fields.Append("\n\n\t\t// References");
+				foreach( var reference in entity.References)
+				{
+					AddReferenceFields( reference);
+				}
+			}
+		}
 
+		private void AddReferenceFields( Reference reference)
+		{
+			string idPattern = _tablePrimaryKeyDataType[reference.TableName];
+			switch(idPattern)
+			{
+				case Global.IDPATTERN_ASKGUID:
+					_fields.Append("\n\t\t");
+					_fields.Append($"public string? {reference.ColumnName}GuidRef");
+					_fields.Append(" { get; set; }");
+					
+					break;
+				case Global.IDPATTERN_ASKVERSION:
+					_fields.Append("\n\t\t");
+					_fields.Append($"public string? {reference.ColumnName}GuidRef");
+					_fields.Append(" { get; set; }");
+
+					_fields.Append("\n\t\t");
+					_fields.Append($"public decimal? {reference.ColumnName}RecordVersionRef");
+					_fields.Append(" { get; set; }");
+					break;
+				case Global.IDPATTERN_ASKID:
+				default:
+					_fields.Append("\n\t\t");
+					_fields.Append($"public int? {reference.ColumnName}IdRef");
+					_fields.Append(" { get; set; }");
+					break;
+			}
+		}
+
+		private void ProcessTrackingPattern(Structure entity)
+		{
+			if (entity.TrackingPattern != null && !entity.TrackingPattern.Equals(Global.TRACKINGPATTERN_NONE))
+			{
+				_fields.Append("\n\n\t\t// Tracking Pattern");
+				string pattern = entity.TrackingPattern;
+				switch(pattern)
+				{
+					case Global.TRACKINGPATTERN_AUDIT:
+						_fields.Append("\n\t\t");
+						_fields.Append($"public string? CreatedBy");
+						_fields.Append(" { get; set; }");
+
+						_fields.Append("\n\t\t");
+						_fields.Append($"public DateTime? CreatedOn");
+						_fields.Append(" { get; set; }");
+
+						_fields.Append("\n\t\t");
+						_fields.Append($"public string? UpdatedBy");
+						_fields.Append(" { get; set; }");
+
+						_fields.Append("\n\t\t");
+						_fields.Append($"public DateTime? UpdatedOn");
+						_fields.Append(" { get; set; }");
+						break;
+					case Global.TRACKINGPATTERN_AUDITPRESERVE:
+						_fields.Append("\n\t\t");
+						_fields.Append($"public string? CreatedBy");
+						_fields.Append(" { get; set; }");
+
+						_fields.Append("\n\t\t");
+						_fields.Append($"public DateTime? CreatedOn");
+						_fields.Append(" { get; set; }");
+
+						_fields.Append("\n\t\t");
+						_fields.Append($"public string? UpdatedBy");
+						_fields.Append(" { get; set; }");
+
+						_fields.Append("\n\t\t");
+						_fields.Append($"public DateTime? UpdatedOn");
+						_fields.Append(" { get; set; }");
+
+						_fields.Append("\n\t\t");
+						_fields.Append($"public bool IsDeleted");
+						_fields.Append(" { get; set; }");
+						break;
+					case Global.TRACKINGPATTERN_VERSION:
+						_fields.Append("\n\t\t");
+						_fields.Append($"public string? RecordState");
+						_fields.Append(" { get; set; }");
+
+						_fields.Append("\n\t\t");
+						_fields.Append($"public string? PerformedBy");
+						_fields.Append(" { get; set; }");
+
+						_fields.Append("\n\t\t");
+						_fields.Append($"public DateTime? PerformedOn");
+						_fields.Append(" { get; set; }");
+
+						_fields.Append("\n\t\t");
+						_fields.Append($"public string? PerformedReason");
+						_fields.Append(" { get; set; }");
+						break;
+					default:
+						string msg = $"Tracking Pattern: {pattern} not found.  Entity {entity.Name} has an error.";
+						_logger.Warning(msg);
+						throw new ArgumentException(msg);
+				}
+			}
 		}
 
 		private string GetInterfaces()
