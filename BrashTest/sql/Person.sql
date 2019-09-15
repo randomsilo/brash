@@ -1,0 +1,6 @@
+CREATE TABLE Person (
+	PersonId INTEGER PRIMARY KEY AUTOINCREMENT
+	, LastName TEXT
+	, FirstName TEXT
+	, MiddleName TEXT
+);
