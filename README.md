@@ -90,3 +90,11 @@ Each object represents a table.
 
 Extensions and Children use the structure pattern.
 They can each have extensions and children.
+
+
+## Suggested Tools
+
+```bash
+sudo apt-get install sqlitemon
+sudo apt-get install sqlitebrowser
+```

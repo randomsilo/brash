@@ -21,6 +21,7 @@ namespace BrashTest.Mock.RepositorySql
                 @LastName
                 , @FirstName
                 , @MiddleName);
+            SELECT last_insert_rowid();
             ";
             
             _sql[AskIdRepositorySqlTypes.FETCH] = @"
@@ -32,7 +33,7 @@ namespace BrashTest.Mock.RepositorySql
             FROM 
                 Person 
             WHERE 
-                Id = @Id;
+                PersonId = @PersonId;
             ";
             
             _sql[AskIdRepositorySqlTypes.UPDATE] = @"
@@ -42,13 +43,13 @@ namespace BrashTest.Mock.RepositorySql
                 , FirstName = @FirstName
                 , MiddleName = @MiddleName
             WHERE
-                Id = @Id;
+                PersonId = @PersonId;
             ";
             
             _sql[AskIdRepositorySqlTypes.DELETE] = @"
-            DELETE Person
+            DELETE FROM Person
             WHERE
-                Id = @Id;
+                PersonId = @PersonId;
             ";
         }
     }

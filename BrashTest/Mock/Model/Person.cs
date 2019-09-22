@@ -10,7 +10,7 @@ namespace BrashTest.Mock.Model
 	public class Person : IAskId
 	{
 		// IdPattern
-		int? PersonId { get; set; }
+		public int? PersonId { get; set; }
 
 		// Fields
 		public string LastName { get; set; }

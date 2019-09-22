@@ -8,5 +8,11 @@ namespace Brash.Infrastructure
         public ActionStatus Status { get; set; }
         public string Message { get; set; }
         public Exception CaughtException { get; set; }
+
+        public void UpdateStatus(ActionStatus status, string message)
+        {
+            Status = status;
+            Message = message;
+        }
     }
 }

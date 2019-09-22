@@ -196,7 +196,7 @@ namespace brashcli.Process
 					_interfaces.Add("IAskGuid");
 
 					_fields.Append("\n\t\t");
-					_fields.Append($"Guid? {entry.Name}Guid");
+					_fields.Append($"public Guid? {entry.Name}Guid");
 					_fields.Append(" { get; set; }");
 
 					_interfaceImplementations.Append("\n\t\tpublic string GetAskGuidPropertyName()");
@@ -209,7 +209,7 @@ namespace brashcli.Process
 					_interfaces.Add("IAskVersion");
 
 					_fields.Append("\n\t\t");
-					_fields.Append($"Guid? {entry.Name}Guid");
+					_fields.Append($"public Guid? {entry.Name}Guid");
 					_fields.Append(" { get; set; }");
 
 					_fields.Append("\n\t\t");
@@ -230,7 +230,7 @@ namespace brashcli.Process
 					_interfaces.Add("IAskId");
 
 					_fields.Append("\n\t\t");
-					_fields.Append($"int? {entry.Name}Id");
+					_fields.Append($"public int? {entry.Name}Id");
 					_fields.Append(" { get; set; }");
 
 					_interfaceImplementations.Append("\n\t\tpublic string GetAskIdPropertyName()");

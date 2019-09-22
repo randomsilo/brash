@@ -9,5 +9,8 @@ namespace Brash.Infrastructure
         AAskIdRepositorySql RepositorySql { get; }
 
         void CreateDatabase();
+        int? PerformInsert( string sql, object model);
+        int PerformUpdate( string sql, object model);
+        int PerformDelete( string sql, object model);
     }
 }
