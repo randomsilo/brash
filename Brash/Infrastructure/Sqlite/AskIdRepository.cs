@@ -1,5 +1,8 @@
 using System;
 using System.Reflection;
+using System.Linq;
+using System.Data.SQLite;
+using Dapper;
 using Brash.Model;
 
 namespace Brash.Infrastructure.Sqlite
@@ -10,6 +13,13 @@ namespace Brash.Infrastructure.Sqlite
         public AskIdRepository(IManageDatabase databaseManager)
         {
             DatabaseManager = databaseManager;
+        }
+
+        public SQLiteConnection GetDatabaseConnection()
+        {
+            return new SQLiteConnection(
+                DatabaseManager.DatabaseContext.GetProperty(DatabaseProperty.CONNECTION_STRING)
+            );
         }
 
         public void SetId(int? id, T model)
@@ -32,7 +42,7 @@ namespace Brash.Infrastructure.Sqlite
                 , Status = ActionStatus.INFORMATION
             };
 
-            var id = InsertModel(model);
+            var id = PerformInsert(model);
             if (id >= 0)
             {
                 SetId(id, model);
@@ -60,7 +70,7 @@ namespace Brash.Infrastructure.Sqlite
                 , Status = ActionStatus.INFORMATION
             };
 
-            int rows = UpdateModel(model);
+            int rows = PerformUpdate(model);
             if (rows == 1)
             {
                 result.UpdateStatus(ActionStatus.SUCCESS, "Record updated.");
@@ -86,7 +96,7 @@ namespace Brash.Infrastructure.Sqlite
                 , Status = ActionStatus.INFORMATION
             };
 
-            int rows = DeleteModel(model);
+            int rows = PerformDelete(model);
             if (rows == 1)
             {
                 result.UpdateStatus(ActionStatus.SUCCESS, "Record removed.");
@@ -104,19 +114,43 @@ namespace Brash.Infrastructure.Sqlite
             return result;
         }
 
-        private int? InsertModel(T model)
+        private int? PerformInsert(T model)
         {
-            return DatabaseManager.PerformInsert(DatabaseManager.RepositorySql.GetCreateStatement(), model);
+            int? id;
+
+            using (var connection = GetDatabaseConnection())
+            {
+                connection.Open();
+                id = connection.Query<int>(DatabaseManager.RepositorySql.GetCreateStatement(), model).First();
+            }
+
+            return id;
         }
 
-        private int UpdateModel(T model)
+        private int PerformUpdate(T model)
         {
-            return DatabaseManager.PerformUpdate(DatabaseManager.RepositorySql.GetUpdateStatement(), model);
+            int rows = 0;
+
+            using (var connection = GetDatabaseConnection())
+            {
+                connection.Open();
+                rows = connection.Execute(DatabaseManager.RepositorySql.GetUpdateStatement(), model);
+            }
+
+            return rows;
         }
 
-        private int DeleteModel(T model)
+        private int PerformDelete(T model)
         {
-            return DatabaseManager.PerformDelete(DatabaseManager.RepositorySql.GetDeleteStatement(), model);
+            int rows = 0;
+
+            using (var connection = GetDatabaseConnection())
+            {
+                connection.Open();
+                rows = connection.Execute(DatabaseManager.RepositorySql.GetDeleteStatement(), model);
+            }
+
+            return rows;
         }
     }
 }

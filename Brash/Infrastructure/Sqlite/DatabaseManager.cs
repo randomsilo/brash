@@ -53,44 +53,5 @@ namespace Brash.Infrastructure.Sqlite
                 DatabaseContext.GetProperty(DatabaseProperty.CONNECTION_STRING)
             );
         }
-
-        public int? PerformInsert( string sql, object model)
-        {
-            int? id;
-
-            using (var connection = GetDatabaseConnection())
-            {
-                connection.Open();
-                id = connection.Query<int>(sql, model).First();
-            }
-
-            return id;
-        }
-
-        public int PerformUpdate( string sql, object model)
-        {
-            int rows = 0;
-
-            using (var connection = GetDatabaseConnection())
-            {
-                connection.Open();
-                rows = connection.Execute(sql, model);
-            }
-
-            return rows;
-        }
-
-        public int PerformDelete( string sql, object model)
-        {
-            int rows = 0;
-
-            using (var connection = GetDatabaseConnection())
-            {
-                connection.Open();
-                rows = connection.Execute(sql, model);
-            }
-
-            return rows;
-        }
     }
 }
