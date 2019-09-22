@@ -7,7 +7,7 @@ namespace Brash.Infrastructure
     {
         IManageDatabase DatabaseManager { get; }
         ActionResult<T> Create(T model);
-        ActionResult<T> Fetch(int? id);
+        ActionResult<T> Fetch(T model);
         ActionResult<T> Update(T model);
         ActionResult<T> Delete(T model);
     }

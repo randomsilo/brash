@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using System.Collections.Generic;
 using System.Linq;
 using System.Data.SQLite;
 using Dapper;
@@ -46,6 +47,7 @@ namespace Brash.Infrastructure.Sqlite
             if (id >= 0)
             {
                 SetId(id, model);
+                result.Model = PerformFetch(model).FirstOrDefault();
                 result.UpdateStatus(ActionStatus.SUCCESS, "Record created.");
             }
             else
@@ -55,9 +57,30 @@ namespace Brash.Infrastructure.Sqlite
 
             return result;
         }
-        public ActionResult<T> Fetch(int? id)
+        public ActionResult<T> Fetch(T model)
         {
-            ActionResult<T> result = new ActionResult<T>();
+            ActionResult<T> result = new ActionResult<T>()
+            {
+                Model = model
+                , Message = "init"
+                , Status = ActionStatus.INFORMATION
+            };
+
+            IEnumerable<T> models = PerformFetch(model);
+            if (models.Count() == 1)
+            {
+                result.UpdateStatus(ActionStatus.SUCCESS, "Record updated.");
+                result.Model = models.FirstOrDefault();
+            }
+            else if (models.Count() > 1)
+            {
+                result.UpdateStatus(ActionStatus.ERROR, "More than 1 record found.");
+                result.Model = models.FirstOrDefault();
+            }
+            else if (models.Count() == 0)
+            {
+                result.UpdateStatus(ActionStatus.ERROR, "Record not found.");
+            }
 
             return result;
         }
@@ -73,11 +96,12 @@ namespace Brash.Infrastructure.Sqlite
             int rows = PerformUpdate(model);
             if (rows == 1)
             {
+                result.Model = PerformFetch(model).FirstOrDefault();
                 result.UpdateStatus(ActionStatus.SUCCESS, "Record updated.");
-                // TODO fetch row
             }
             else if (rows > 1)
             {
+                result.Model = PerformFetch(model).FirstOrDefault();
                 result.UpdateStatus(ActionStatus.ERROR, "More than 1 record updated.");
             }
             else
@@ -100,7 +124,6 @@ namespace Brash.Infrastructure.Sqlite
             if (rows == 1)
             {
                 result.UpdateStatus(ActionStatus.SUCCESS, "Record removed.");
-                // TODO fetch row
             }
             else if (rows > 1)
             {
@@ -151,6 +174,19 @@ namespace Brash.Infrastructure.Sqlite
             }
 
             return rows;
+        }
+
+        private IEnumerable<T> PerformFetch(T model)
+        {
+            IEnumerable<T> models;
+
+            using (var connection = GetDatabaseConnection())
+            {
+                connection.Open();
+                models = connection.Query<T>(DatabaseManager.RepositorySql.GetFetchStatement(), model);
+            }
+
+            return models;
         }
     }
 }

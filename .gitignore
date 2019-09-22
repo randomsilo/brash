@@ -222,3 +222,4 @@ project.lock.json
 
 tmp
 *.log
+*.sqlite
