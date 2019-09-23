@@ -31,14 +31,14 @@ dotnet run sqlite-gen --file /shop/randomsilo/MyProject/structure.json
 # generate domain classes (cs is the c# prefix)
 dotnet run cs-domain --file /shop/randomsilo/MyProject/structure.json
 
-# generate repository classes
-dotnet run cs-repo --file /shop/randomsilo/MyProject/structure.json
+# generate sqlite repository classes
+dotnet run cs-repo-sqlite --file /shop/randomsilo/MyProject/structure.json
 
 # generate api classes
-dotnet run cs-api --file /shop/randomsilo/MyProject/structure.json
+dotnet run cs-api-sqlite --file /shop/randomsilo/MyProject/structure.json
 
 # generate xunit classes
-dotnet run cs-test --file /shop/randomsilo/MyProject/structure.json
+dotnet run cs-test-sqlite --file /shop/randomsilo/MyProject/structure.json
 
 # generate bootstrap v4 cards, forms, and drop down choices
 ## materialcss, foundation are future features

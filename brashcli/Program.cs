@@ -20,12 +20,13 @@ namespace brashcli
         {
             System.IO.Directory.CreateDirectory("./tmp");
 
-            return CommandLine.Parser.Default.ParseArguments<ProjectInitialization,DataInitialization, SqliteGeneration, CsDomainGeneration>(args)
+            return CommandLine.Parser.Default.ParseArguments<ProjectInitialization,DataInitialization, SqliteGeneration, CsDomainGeneration, CsRepoGeneration>(args)
 	            .MapResult(
 	                (ProjectInitialization opts) => CreateProjectInitializeScript(opts)
                     , (DataInitialization opts) => CreateDataJsonFile(opts)
                     , (SqliteGeneration opts) => CreateSqlFiles(opts)
                     , (CsDomainGeneration opts) => CreateCsDomainFiles(opts)
+                    , (CsRepoGeneration opts) => CreateCsRepoFiles(opts)
                     , errs => 1);
         }
 
@@ -138,6 +139,35 @@ namespace brashcli
                 catch(Exception exception)
                 {
                     logger.Error(exception, "CreateCsDomainFiles, unhandled exception caught.");
+                    returnCode = -1;
+                    break;
+                }
+
+            } while(false);
+
+            return returnCode;
+		}
+
+        static int CreateCsRepoFiles(CsRepoGeneration opts)
+		{
+            int returnCode = 0;
+            var logger = GetLogger();
+
+            logger.Information($"File  : {opts.FilePath}"); 
+
+			do 
+            {
+                try 
+                {
+                    CsRepoGenerationProcess process = new CsRepoGenerationProcess(logger, opts);
+                    returnCode = process.Execute();
+                    if (returnCode != 0)
+                        break;
+
+                }
+                catch(Exception exception)
+                {
+                    logger.Error(exception, "CreateCsRepoFiles, unhandled exception caught.");
                     returnCode = -1;
                     break;
                 }

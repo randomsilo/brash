@@ -25,7 +25,7 @@ namespace brashcli.Process
             _logger = logger;
             _options = options;
 			_pathProject = System.IO.Path.GetDirectoryName(_options.FilePath);
-			_pathSql = System.IO.Path.Combine(_pathProject, "sqlite");
+			_pathSql = System.IO.Path.Combine(_pathProject, "sql/sqlite");
         }
 
         public int Execute()
