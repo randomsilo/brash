@@ -9,6 +9,7 @@ using Serilog;
 using brashcli.Option;
 using brashcli.Model;
 
+
 namespace brashcli.Process
 {
     public class CsRepoGenerationProcess
@@ -20,9 +21,9 @@ namespace brashcli.Process
 		private string _pathRepositorySqlDirectory;
 		private DomainStructure _domainStructure;
 		private Dictionary<string,string> _tablePrimaryKeyDataType = new Dictionary<string, string>();
-		StringBuilder _fields = new StringBuilder();
-		StringBuilder _interfaceImplementations = new StringBuilder();
-		List<string> _interfaces = new List<string>();
+		private List<string> _columns = new List<string>();
+		private List<string> _selectColumns = new List<string>();
+		private List<string> _primaryKeyColumns = new List<string>();
 		
         public CsRepoGenerationProcess(ILogger logger, CsRepoGeneration options)
         {
@@ -159,27 +160,27 @@ namespace brashcli.Process
             return lines.ToString();
         }
 
-		public string MakeRepoSqlFilePath(Structure entry)
+		public string MakeRepoSqlFilePath(Structure entity)
 		{
-			return System.IO.Path.Combine(_pathRepositorySqlDirectory, entry.Name + "RepositorySql.cs");
+			return System.IO.Path.Combine(_pathRepositorySqlDirectory, entity.Name + "RepositorySql.cs");
 		}
 
-		private void MakeRepoSqlFileCs(Structure parent, Structure entry)
+		private void MakeRepoSqlFileCs(Structure parent, Structure entity)
 		{
-			string fileNamePath = MakeRepoSqlFilePath(entry);
+			string fileNamePath = MakeRepoSqlFilePath(entity);
 			StringBuilder lines = new StringBuilder();
 
-			//SaveTableIdDataType(entry);
-			//AnalyzeStructure(parent, entry);
+			SaveTableIdDataType(entity);
+			AnalyzeStructure(parent, entity);
 
 			lines.Append( TplCsRepoSql(
 				_domainStructure.Domain
-				, entry.Name
-				, entry.IdPattern ?? "AskId"
-				, ""
-				, ""
-				, ""
-				, ""
+				, entity.Name
+				, entity.IdPattern ?? Global.IDPATTERN_ASKID
+				, BuildCreateStatement(parent, entity)
+				, BuildFetchStatement(parent, entity)
+				, BuildUpdateStatement(parent, entity)
+				, BuildDeleteStatement(parent, entity)
 			));
 
 			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
@@ -243,159 +244,78 @@ namespace brashcli.Process
 			_tablePrimaryKeyDataType.Add(entry.Name, entry.IdPattern ?? Global.IDPATTERN_ASKID);
 		}
 
-		private void AnalyzeStructure(Structure parent, Structure entry)
+		private void AnalyzeStructure(Structure parent, Structure entity)
 		{
-			// clear contents
-			_interfaces = new List<string>();
-			_interfaceImplementations = new StringBuilder();
-			_fields = new StringBuilder();
+			_columns = new List<string>();
+			_selectColumns = new List<string>();
+			_primaryKeyColumns = new List<string>();
 
-			StringBuilder template = new StringBuilder();
-
-			_interfaceImplementations.Append("\n\n\t\t// Interface Implementations");
-
-			ProcessIdPattern( entry);
-			ProcessParentPattern( parent, entry);
-			ProcessAdditionalPatterns( entry);
-			ProcessFields( entry);
-			ProcessReferences( entry);	
-			ProcessTrackingPattern( entry);
-
-			// TODO Add extension holders
-			// TODO Add children holders
-		}
-
-		private void ProcessIdPattern(Structure entry)
-		{
-			_fields.Append("\t\t// IdPattern");
-			switch(entry.IdPattern)
+			switch(entity.IdPattern)
 			{
 				case Global.IDPATTERN_ASKGUID:
-					_interfaces.Add("IAskGuid");
-
-					_fields.Append("\n\t\t");
-					_fields.Append($"public Guid? {entry.Name}Guid");
-					_fields.Append(" { get; set; }");
-
-					_interfaceImplementations.Append("\n\t\tpublic string GetAskGuidPropertyName()");
-					_interfaceImplementations.Append("\n\t\t{");
-					_interfaceImplementations.Append($"\n\t\t	return \"{entry.Name}Guid\";");
-					_interfaceImplementations.Append("\n\t\t}");
-
+					_columns.Add($"{entity.Name}Guid");
+					_selectColumns.Add($"{entity.Name}Guid");
+					_primaryKeyColumns.Add($"{entity.Name}Guid");
 					break;
 				case Global.IDPATTERN_ASKVERSION:
-					_interfaces.Add("IAskVersion");
+					_columns.Add($"{entity.Name}Guid");
+					_selectColumns.Add($"{entity.Name}Guid");
+					_primaryKeyColumns.Add($"{entity.Name}Guid");
 
-					_fields.Append("\n\t\t");
-					_fields.Append($"public Guid? {entry.Name}Guid");
-					_fields.Append(" { get; set; }");
+					_columns.Add($"{entity.Name}RecordVersion");
+					_selectColumns.Add($"{entity.Name}RecordVersion");
+					_primaryKeyColumns.Add($"{entity.Name}RecordVersion");
 
-					_fields.Append("\n\t\t");
-					_fields.Append($"int? {entry.Name}RecordVersion");
-					_fields.Append(" { get; set; }");
-
-					_fields.Append("\n\t\t");
-					_fields.Append($"bool? IsCurrent");
-					_fields.Append(" { get; set; }");
-
-					_interfaceImplementations.Append("\n\t\tpublic string GetAskVersionPropertyName()");
-					_interfaceImplementations.Append("\n\t\t{");
-					_interfaceImplementations.Append($"\n\t\t	return \"{entry.Name}Guid\";");
-					_interfaceImplementations.Append("\n\t\t}");
+					_columns.Add($"IsCurrent");
+					_selectColumns.Add($"IsCurrent");
 					break;
 				case Global.IDPATTERN_ASKID:
 				default:
-					_interfaces.Add("IAskId");
-
-					_fields.Append("\n\t\t");
-					_fields.Append($"public int? {entry.Name}Id");
-					_fields.Append(" { get; set; }");
-
-					_interfaceImplementations.Append("\n\t\tpublic string GetAskIdPropertyName()");
-					_interfaceImplementations.Append("\n\t\t{");
-					_interfaceImplementations.Append($"\n\t\t	return \"{entry.Name}Id\";");
-					_interfaceImplementations.Append("\n\t\t}");
+					_columns.Add($"{entity.Name}Id");
+					_selectColumns.Add($"{entity.Name}Id");
+					_primaryKeyColumns.Add($"{entity.Name}Id");
 					break;
 			}
-		}
 
-		private void ProcessParentPattern(Structure parent, Structure entity)
-		{
 			if (parent != null)
 			{
-				_fields.Append("\n\n\t\t// Parent IdPattern");
 				switch(parent.IdPattern)
 				{
 					case Global.IDPATTERN_ASKGUID:
-						_interfaces.Add("IAskGuidChild");
-
-						_fields.Append("\n\t\t");
-						_fields.Append($"Guid? {parent.Name}Guid");
-						_fields.Append(" { get; set; }");
-
-
-						_interfaceImplementations.Append("\n\t\t");
-						_interfaceImplementations.Append("\n\t\tpublic string GetAskGuidParentPropertyName()");
-						_interfaceImplementations.Append("\n\t\t{");
-						_interfaceImplementations.Append($"\n\t\t	return \"{parent.Name}Guid\";");
-						_interfaceImplementations.Append("\n\t\t}");
+						_columns.Add($"{parent.Name}Guid");
+						_selectColumns.Add($"{parent.Name}Guid");
 						break;
 					case Global.IDPATTERN_ASKVERSION:
-						_interfaces.Add("IAskVersionChild");
+						_columns.Add($"{parent.Name}Guid");
+						_selectColumns.Add($"{parent.Name}Guid");
 
-						_fields.Append("\n\t\t");
-						_fields.Append($"Guid? {parent.Name}Guid");
-						_fields.Append(" { get; set; }");
-
-						_fields.Append("\n\t\t");
-						_fields.Append($"int? {parent.Name}RecordVersion");
-						_fields.Append(" { get; set; }");
-
-						_interfaceImplementations.Append("\n\t\t");
-						_interfaceImplementations.Append("\n\t\tpublic string GetAskVersionParentPropertyName()");
-						_interfaceImplementations.Append("\n\t\t{");
-						_interfaceImplementations.Append($"\n\t\t	return \"{parent.Name}Guid\";");
-						_interfaceImplementations.Append("\n\t\t}");
+						_columns.Add($"{parent.Name}RecordVersion");
+						_selectColumns.Add($"{parent.Name}RecordVersion");
 						break;
 					case Global.IDPATTERN_ASKID:
 					default:
-						_interfaces.Add("IAskIdChild");
-
-						_fields.Append("\n\t\t");
-						_fields.Append($"int? {parent.Name}Id");
-						_fields.Append(" { get; set; }");
-
-						_interfaceImplementations.Append("\n\t\t");
-						_interfaceImplementations.Append("\n\t\tpublic string GetAskIdParentPropertyName()");
-						_interfaceImplementations.Append("\n\t\t{");
-						_interfaceImplementations.Append($"\n\t\t	return \"{parent.Name}Id\";");
-						_interfaceImplementations.Append("\n\t\t}");
+						_columns.Add($"{parent.Name}Id");
+						_selectColumns.Add($"{parent.Name}Id");
 						break;
 				}
 			}
-		}
 
-		private void ProcessAdditionalPatterns(Structure entity)
-		{
 			if (entity.AdditionalPatterns != null)
 			{
-				_fields.Append("\n\n\t\t// Additional Patterns");
 				foreach( string pattern in entity.AdditionalPatterns)
 				{
 					switch(pattern)
 					{
 						case Global.ADDITIONALPATTERN_CHOICE:
-							_fields.Append("\n\t\t");
-							_fields.Append($"public string ChoiceName");
-							_fields.Append(" { get; set; }");
+							_columns.Add($"ChoiceName");
+							_selectColumns.Add($"ChoiceName");
 
-							_fields.Append("\n\t\t");
-							_fields.Append($"public decimal? OrderNo");
-							_fields.Append(" { get; set; }");
+							_columns.Add($"OrderNo");
+							_selectColumns.Add($"OrderNo");
 
-							_fields.Append("\n\t\t");
-							_fields.Append($"public bool? IsDisabled");
-							_fields.Append(" { get; set; }");
+							_columns.Add($"IsDisabled");
+							_selectColumns.Add($"IsDisabled");
+
 							break;
 						default:
 							string msg = $"Additional Pattern: {pattern} not found.  Entity {entity.Name} has an error.";
@@ -404,13 +324,17 @@ namespace brashcli.Process
 					}
 				}
 			}
+
+			ProcessFields(entity);
+			ProcessReferences(entity);
+			ProcessTrackingPattern(entity);
+
 		}
 
 		private void ProcessFields(Structure entity)
 		{
 			if (entity.Fields != null)
 			{
-				_fields.Append("\n\n\t\t// Fields");
 				foreach( var field in entity.Fields)
 				{
 					AddField( field);
@@ -420,39 +344,31 @@ namespace brashcli.Process
 
 		private void AddField(Field field)
 		{
-			_fields.Append("\n\t\tpublic ");
 			switch(field.Type)
 			{
 				case "D":
 				case "N":
-					_fields.Append("DateTime?");
-					break;
-				case "F":
-					_fields.Append("decimal?");
-					break;
-				case "I":
-					_fields.Append("int?");
+					_columns.Add($"{field.Name}");
+					_selectColumns.Add($"datetime({field.Name},'unixepoch') AS {field.Name}");
 					break;
 				case "B":
-					_fields.Append("byte[]");
-					break;
+					throw new NotImplementedException();
+				case "F":
+				case "I":
 				case "S":
 				case "C":
 				case "G":
 				default:
-					_fields.Append("string");
+					_columns.Add($"{field.Name}");
+					_selectColumns.Add($"{field.Name}");
 					break;
 			}
-			_fields.Append($" {field.Name}");
-			_fields.Append(" { get; set; }");
 		}
-
 
 		private void ProcessReferences(Structure entity)
 		{
 			if (entity.References != null)
 			{
-				_fields.Append("\n\n\t\t// References");
 				foreach( var reference in entity.References)
 				{
 					AddReferenceFields( reference);
@@ -466,25 +382,20 @@ namespace brashcli.Process
 			switch(idPattern)
 			{
 				case Global.IDPATTERN_ASKGUID:
-					_fields.Append("\n\t\t");
-					_fields.Append($"public string? {reference.ColumnName}GuidRef");
-					_fields.Append(" { get; set; }");
-					
+					_columns.Add($"{reference.ColumnName}GuidRef");
+					_selectColumns.Add($"{reference.ColumnName}GuidRef");
 					break;
 				case Global.IDPATTERN_ASKVERSION:
-					_fields.Append("\n\t\t");
-					_fields.Append($"public string? {reference.ColumnName}GuidRef");
-					_fields.Append(" { get; set; }");
+					_columns.Add($"{reference.ColumnName}GuidRef");
+					_selectColumns.Add($"{reference.ColumnName}GuidRef");
 
-					_fields.Append("\n\t\t");
-					_fields.Append($"public decimal? {reference.ColumnName}RecordVersionRef");
-					_fields.Append(" { get; set; }");
+					_columns.Add($"{reference.ColumnName}RecordVersionRef");
+					_selectColumns.Add($"{reference.ColumnName}RecordVersionRef");
 					break;
 				case Global.IDPATTERN_ASKID:
 				default:
-					_fields.Append("\n\t\t");
-					_fields.Append($"public int? {reference.ColumnName}IdRef");
-					_fields.Append(" { get; set; }");
+					_columns.Add($"{reference.ColumnName}IdRef");
+					_selectColumns.Add($"{reference.ColumnName}IdRef");
 					break;
 			}
 		}
@@ -493,64 +404,50 @@ namespace brashcli.Process
 		{
 			if (entity.TrackingPattern != null && !entity.TrackingPattern.Equals(Global.TRACKINGPATTERN_NONE))
 			{
-				_fields.Append("\n\n\t\t// Tracking Pattern");
 				string pattern = entity.TrackingPattern;
 				switch(pattern)
 				{
 					case Global.TRACKINGPATTERN_AUDIT:
-						_fields.Append("\n\t\t");
-						_fields.Append($"public string? CreatedBy");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"CreatedBy");
+						_selectColumns.Add($"CreatedBy");
 
-						_fields.Append("\n\t\t");
-						_fields.Append($"public DateTime? CreatedOn");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"CreatedOn");
+						_selectColumns.Add($"datetime(CreatedOn,'unixepoch') AS CreatedOn");
 
-						_fields.Append("\n\t\t");
-						_fields.Append($"public string? UpdatedBy");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"UpdatedBy");
+						_selectColumns.Add($"UpdatedBy");
 
-						_fields.Append("\n\t\t");
-						_fields.Append($"public DateTime? UpdatedOn");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"UpdatedOn");
+						_selectColumns.Add($"datetime(UpdatedOn,'unixepoch') AS UpdatedOn");
 						break;
 					case Global.TRACKINGPATTERN_AUDITPRESERVE:
-						_fields.Append("\n\t\t");
-						_fields.Append($"public string? CreatedBy");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"CreatedBy");
+						_selectColumns.Add($"CreatedBy");
 
-						_fields.Append("\n\t\t");
-						_fields.Append($"public DateTime? CreatedOn");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"CreatedOn");
+						_selectColumns.Add($"datetime(CreatedOn,'unixepoch') AS CreatedOn");
 
-						_fields.Append("\n\t\t");
-						_fields.Append($"public string? UpdatedBy");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"UpdatedBy");
+						_selectColumns.Add($"UpdatedBy");
 
-						_fields.Append("\n\t\t");
-						_fields.Append($"public DateTime? UpdatedOn");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"UpdatedOn");
+						_selectColumns.Add($"datetime(UpdatedOn,'unixepoch') AS UpdatedOn");
 
-						_fields.Append("\n\t\t");
-						_fields.Append($"public bool IsDeleted");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"IsDeleted");
+						_selectColumns.Add($"IsDeleted");
 						break;
 					case Global.TRACKINGPATTERN_VERSION:
-						_fields.Append("\n\t\t");
-						_fields.Append($"public string? RecordState");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"RecordState");
+						_selectColumns.Add($"RecordState");
 
-						_fields.Append("\n\t\t");
-						_fields.Append($"public string? PerformedBy");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"PerformedBy");
+						_selectColumns.Add($"PerformedBy");
 
-						_fields.Append("\n\t\t");
-						_fields.Append($"public DateTime? PerformedOn");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"PerformedOn");
+						_selectColumns.Add($"datetime(PerformedOn,'unixepoch') AS PerformedOn");
 
-						_fields.Append("\n\t\t");
-						_fields.Append($"public string? PerformedReason");
-						_fields.Append(" { get; set; }");
+						_columns.Add($"PerformedReason");
+						_selectColumns.Add($"PerformedReason");
 						break;
 					default:
 						string msg = $"Tracking Pattern: {pattern} not found.  Entity {entity.Name} has an error.";
@@ -560,328 +457,185 @@ namespace brashcli.Process
 			}
 		}
 
-		private string GetInterfaces()
+
+		private string BuildCreateStatement(Structure parent, Structure entity)
 		{
-			StringBuilder template = new StringBuilder();
+			StringBuilder statement = new StringBuilder();
+			bool addComma = false;
 
-			bool anInterfaceHasBeenAdded = false;
-			foreach( var interfaceName in _interfaces)
+			statement.Append($"INSERT INTO {entity.Name} (");
+			statement.Append($"\n\t\t\t\t--- Columns");
+
+			addComma = false;
+			foreach( var column in _columns)
 			{
-				if (anInterfaceHasBeenAdded)
-					template.Append(", ");
+				statement.Append($"\n\t\t\t\t");
+				if (addComma)
+					statement.Append(", ");
 
-				template.Append(interfaceName);
-				anInterfaceHasBeenAdded = true;
+				statement.Append($"{column}");
+				addComma = true;
 			}
 
-			return template.ToString();
-		}
-
-		private string GetInterfacesImplementations()
-		{
-			return _interfaceImplementations.ToString();
-		}
-
-		private string GetFields()
-		{
-			return _fields.ToString();
-		}
-		
-		private string GetIdPattern(Structure entry)
-		{
-			string template = "";
-			switch(entry.IdPattern)
-			{
-				case Global.IDPATTERN_ASKGUID:
-					template = GetTemplateIdPatternAskGuid(entry);
-					break;
-				case Global.IDPATTERN_ASKVERSION:
-					template = GetTemplateIdPatternAskVersion(entry);
-					break;
-				case Global.IDPATTERN_ASKID:
-				default:
-					template = GetTemplateIdPatternAskId(entry);
-					break;
-			}
-
-			return template;
-		}
-
-		private string GetParentPattern(Structure entry)
-		{
-			string template = "";
-			if (entry == null)
-				return template;
-
-			switch(entry.IdPattern)
-			{
-				case Global.IDPATTERN_ASKGUID:
-					template = GetTemplateParentPatternAskGuid(entry);
-					break;
-				case Global.IDPATTERN_ASKVERSION:
-					template = GetTemplateParentPatternAskVersion(entry);
-					break;
-				case Global.IDPATTERN_ASKID:
-				default:
-					template = GetTemplateParentPatternAskId(entry);
-					break;
-			}
-
-			return template;
-		}
-
-	
-		private string GetAdditionalPattern(Structure entry)
-		{
-			StringBuilder template = new StringBuilder();
-
-			if (entry.AdditionalPatterns != null 
-				&& entry.AdditionalPatterns.Contains(Global.ADDITIONALPATTERN_CHOICE))
-			{
-				template.Append(GetTemplateAdditionalPatternChoice(entry));
-			}
-
-			return template.ToString();
-		}
-
-		private string GetFieldsPattern(Structure entry)
-		{
-			StringBuilder template = new StringBuilder();
-
-			if (entry.Fields != null)
-			{
-				foreach( var field in entry.Fields)
-				{
-					template.Append( GetTemplateField(field));
-				}
-			}
-
-			return template.ToString();
-		}
-
-		private string GetTemplateField(Field field)
-		{
-			string template = "";
-
-			switch(field.Type)
-			{
-				case "D":
-				case "N":
-					template = $"\n\t, {field.Name} NUMERIC";
-					break;
-				case "F":
-					template = $"\n\t, {field.Name} REAL";
-					break;
-				case "I":
-					template = $"\n\t, {field.Name} INTEGER";
-					break;
-				case "B":
-					template = $"\n\t, {field.Name} BLOB";
-					break;
-				case "S":
-				case "C":
-				case "G":
-				default:
-					template = $"\n\t, {field.Name} TEXT";
-					break;
-			}
-
-			return template;
-		}
-
-		private string GetTrackingPattern(Structure entry)
-		{
-			string template = "";
-
-			if (entry.TrackingPattern != null)
-			{
-				switch(entry.TrackingPattern)
-				{
-					case Global.TRACKINGPATTERN_AUDIT:
-						template = GetTemplateTrackingPatternAudit(entry);
-						break;
-					case Global.TRACKINGPATTERN_AUDITPRESERVE:
-						template = GetTemplateTrackingPatternAuditPreserve(entry);
-						break;
-					case Global.TRACKINGPATTERN_VERSION:
-						template = GetTemplateTrackingPatternVersion(entry);
-						break;
-					case Global.TRACKINGPATTERN_NONE:
-					default:
-						break;
-				}
-			}
-
-			return template;
-		}
-
-		private string GetReferences(Structure entry)
-		{
-			StringBuilder template = new StringBuilder();
-
-			if (entry.References != null)
-			{
-				foreach( var reference in entry.References)
-				{
-					template.Append( GetTemplateReference(reference, _tablePrimaryKeyDataType[entry.Name]));
-				}
-			}
-
-			return template.ToString();
-		}
-
-		private string GetTemplateReference(Reference reference, string idPattern)
-		{
-			string template = "";
+			statement.Append($"\n\t\t\t) VALUES (");
 			
-			switch(idPattern)
+			statement.Append($"\n\t\t\t\t--- Values");
+
+			addComma = false;
+			foreach( var column in _columns)
 			{
-				case Global.IDPATTERN_ASKGUID:
-					template = $"\n\t, {reference.ColumnName}GuidRef TEXT";
-					break;
-				case Global.IDPATTERN_ASKVERSION:
-					template = $"\n\t, {reference.ColumnName}GuidRef TEXT";
-					template = $"\n\t, {reference.ColumnName}RecordVersionRef INTEGER";
-					break;
-				case Global.IDPATTERN_ASKID:
-				default:
-					template = $"\n\t, {reference.ColumnName}IdRef INTEGER";
-					break;
+				statement.Append($"\n\t\t\t\t");
+				if (addComma)
+					statement.Append(", ");
+
+				statement.Append($"@{column}");
+				addComma = true;
 			}
-			
-			return template;
-		}
-		private string GetTemplateIdPatternAskId( Structure entry)
-        {
-            return $"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT";
+
+			statement.Append($"\n\t\t\t);");
+			statement.Append($"\n\t\t\tSELECT last_insert_rowid();");
+
+			return statement.ToString();
 		}
 
-		private string GetTemplateIdPatternAskGuid( Structure entry)
-        {
-            return $"\t{entry.Name}Guid TEXT PRIMARY KEY";
-		}
-
-		private string GetTemplateIdPatternAskVersion( Structure entry)
-        {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT");
-			sb.Append( $"\n\t, {entry.Name}Guid TEXT UNIQUE");
-			sb.Append( $"\n\t, RecordVersion INTEGER");
-			sb.Append( $"\n\t, IsCurrent INTEGER");
-            return sb.ToString();
-		}
-
-		private string GetTemplateParentPatternAskId( Structure entry)
-        {
-            return $"\n\t, {entry.Name}Id INTEGER";
-		}
-
-		private string GetTemplateParentPatternAskGuid( Structure entry)
-        {
-            return $"\n\t, {entry.Name}Guid TEXT";
-		}
-
-		private string GetTemplateParentPatternAskVersion( Structure entry)
-        {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, {entry.Name}Guid TEXT");
-			sb.Append( $"\n\t, {entry.Name}RecordVersion INTEGER");
-            return sb.ToString();
-		}
-
-		private string GetTemplateForeignKeyPatternAskId( Structure entry)
-        {
-            return $"\n\t, FOREIGN KEY ({entry.Name}Id) REFERENCES {entry.Name}({entry.Name}Id) ON DELETE CASCADE";
-		}
-
-		private string GetTemplateForeignKeyPatternAskGuid( Structure entry)
-        {
-            return $"\n\t, FOREIGN KEY ({entry.Name}Guid) REFERENCES {entry.Name}({entry.Name}Guid) ON DELETE CASCADE";
-		}
-
-		private string GetTemplateForeignKeyPatternAskVersion( Structure entry)
-        {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, FOREIGN KEY ({entry.Name}Guid) REFERENCES {entry.Name}({entry.Name}Guid) ON DELETE CASCADE");
-            return sb.ToString();
-		}
-
-		private string GetTemplateForeignKeyReference(Reference reference, string idPattern)
+		private string BuildFetchStatement(Structure parent, Structure entity)
 		{
-			string template = "";
-			
-			switch(idPattern)
+			StringBuilder statement = new StringBuilder();
+			bool addComma = false;
+
+			statement.Append($"SELECT");
+			statement.Append($"\n\t\t\t\t--- Columns");
+
+			addComma = false;
+			foreach( var column in _columns)
 			{
-				case Global.IDPATTERN_ASKGUID:
-					template = GetTemplateForeignKeyReferencePatternAskGuid(reference);
-					break;
-				case Global.IDPATTERN_ASKVERSION:
-					template = GetTemplateForeignKeyReferencePatternAskVersion(reference);
-					break;
-				case Global.IDPATTERN_ASKID:
-				default:
-					template = GetTemplateForeignKeyReferencePatternAskId(reference);
-					break;
+				statement.Append($"\n\t\t\t\t");
+				if (addComma)
+					statement.Append(", ");
+
+				statement.Append($"{column}");
+				addComma = true;
 			}
+
+			statement.Append($"\n\t\t\tFROM");
+			statement.Append($"\n\t\t\t\t{entity.Name}");
+			statement.Append($"\n\t\t\tWHERE");
 			
-			return template;
+			addComma = false;
+			foreach( var column in _primaryKeyColumns)
+			{
+				statement.Append($"\n\t\t\t\t");
+				if (addComma)
+					statement.Append(", ");
+
+				statement.Append($"{column} = @{column}");
+				addComma = true;
+			}
+
+			statement.Append($"\n\t\t\t;");
+
+			return statement.ToString();
 		}
 
-		private string GetTemplateForeignKeyReferencePatternAskId( Reference reference)
-        {
-            return $"\n\t, FOREIGN KEY ({reference.ColumnName}IdRef) REFERENCES {reference.TableName}({reference.TableName}Id) ON DELETE SET NULL";
-		}
+		private string BuildUpdateStatement(Structure parent, Structure entity)
+		{
+			StringBuilder statement = new StringBuilder();
+			bool addComma = false;
 
-		private string GetTemplateForeignKeyReferencePatternAskGuid( Reference reference)
-        {
-            return $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.TableName}Guid) ON DELETE SET NULL";
-		}
+			statement.Append($"UPDATE {entity.Name}");
+			statement.Append($"\n\t\t\tSET");
 
-		private string GetTemplateForeignKeyReferencePatternAskVersion( Reference reference)
-        {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.TableName}Guid) ON DELETE SET NULL");
-            return sb.ToString();
-		}
+			addComma = false;
+			foreach( var column in _columns)
+			{
+				if (_primaryKeyColumns.Contains(column))
+					continue;
 
-		private string GetTemplateAdditionalPatternChoice( Structure entry)
-        {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, ChoiceName TEXT");
-			sb.Append( $"\n\t, OrderNo INTEGER");
-			sb.Append( $"\n\t, IsDisabled INTEGER");
-            return sb.ToString();
-		}
+				statement.Append($"\n\t\t\t\t");
+				if (addComma)
+					statement.Append(", ");
 
-		private string GetTemplateTrackingPatternAudit( Structure entry)
-        {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, CreatedBy TEXT");
-			sb.Append( $"\n\t, CreatedOn NUMERIC");
-			sb.Append( $"\n\t, UpdatedBy TEXT");
-			sb.Append( $"\n\t, UpdatedOn NUMERIC");
+				statement.Append($"{column} = @{column}");
+				addComma = true;
+			}
 
-            return sb.ToString();
-		}
-
-		private string GetTemplateTrackingPatternAuditPreserve( Structure entry)
-        {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( GetTemplateTrackingPatternAudit(entry));
-			sb.Append( $"\n\t, IsDeleted INTEGER");
+			statement.Append($"\n\t\t\tWHERE");
 			
-            return sb.ToString();
+			addComma = false;
+			foreach( var column in _primaryKeyColumns)
+			{
+				statement.Append($"\n\t\t\t\t");
+				if (addComma)
+					statement.Append(", ");
+
+				statement.Append($"{column} = @{column}");
+				addComma = true;
+			}
+
+			statement.Append($"\n\t\t\t;");
+
+			return statement.ToString();
 		}
 
-		private string GetTemplateTrackingPatternVersion( Structure entry)
-        {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, RecordState TEXT");
-			sb.Append( $"\n\t, PerformedBy TEXT");
-			sb.Append( $"\n\t, PerformedOn NUMERIC");
-			sb.Append( $"\n\t, PerformedReason TEXT");
+		private string BuildDeleteStatement(Structure parent, Structure entity)
+		{
+			if (entity.TrackingPattern != null && entity.TrackingPattern.Equals(Global.TRACKINGPATTERN_AUDITPRESERVE))
+			{
+				return BuildDeleteUpdateFlagStatement(parent, entity);
+			}
+			else
+			{
+				return BuildDeleteStatementActual(parent, entity);
+			}
+		}
 
-            return sb.ToString();
+		private string BuildDeleteStatementActual(Structure parent, Structure entity)
+		{
+			StringBuilder statement = new StringBuilder();
+			bool addComma = false;
+
+			statement.Append($"DELETE {entity.Name}");
+			statement.Append($"\n\t\t\tWHERE");
+			
+			addComma = false;
+			foreach( var column in _primaryKeyColumns)
+			{
+				statement.Append($"\n\t\t\t\t");
+				if (addComma)
+					statement.Append(", ");
+
+				statement.Append($"{column} = @{column}");
+				addComma = true;
+			}
+
+			statement.Append($"\n\t\t\t;");
+
+			return statement.ToString();
+		}
+
+		private string BuildDeleteUpdateFlagStatement(Structure parent, Structure entity)
+		{
+			StringBuilder statement = new StringBuilder();
+			bool addComma = false;
+
+			statement.Append($"UPDATE {entity.Name}");
+			statement.Append($"\n\t\t\tSET IsDeleted = 1");
+			statement.Append($"\n\t\t\tWHERE");
+			
+			addComma = false;
+			foreach( var column in _primaryKeyColumns)
+			{
+				statement.Append($"\n\t\t\t\t");
+				if (addComma)
+					statement.Append(", ");
+
+				statement.Append($"{column} = @{column}");
+				addComma = true;
+			}
+
+			statement.Append($"\n\t\t\t;");
+
+			return statement.ToString();
 		}
 
     }
