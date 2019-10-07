@@ -61,10 +61,10 @@ namespace brashcli.Process
         private void MakeInfrastructureDirectories()
         {
 			var directory = _domainStructure.Domain + "." + "Infrastructure";
-			_pathRepositoryDirectory = System.IO.Path.Combine(_pathProject, directory, "Repository");
+			_pathRepositoryDirectory = System.IO.Path.Combine(_pathProject, directory, "Sqlite/Repository");
 			System.IO.Directory.CreateDirectory(_pathRepositoryDirectory);
 
-			_pathRepositorySqlDirectory = System.IO.Path.Combine(_pathProject, directory, "RepositorySql");
+			_pathRepositorySqlDirectory = System.IO.Path.Combine(_pathProject, directory, "Sqlite/RepositorySql");
 			System.IO.Directory.CreateDirectory(_pathRepositorySqlDirectory);
         }
 
@@ -138,15 +138,11 @@ namespace brashcli.Process
         {
             StringBuilder lines = new StringBuilder();
 
-			lines.Append($"\nusing System;");
-			lines.Append($"\nusing System.Collections;");
-			lines.Append($"\nusing System.Collections.Generic;");
-			lines.Append($"\nusing System.Linq;");
 			lines.Append($"\nusing Brash.Infrastructure;");
 			lines.Append($"\nusing Brash.Infrastructure.Sqlite;");
-			lines.Append($"\nusing {domain}.Model;");
+			lines.Append($"\nusing {domain}.Domain.Model;");
 			lines.Append($"\n");
-			lines.Append($"\nnamespace {domain}.Infrastructure.Repository");
+			lines.Append($"\nnamespace {domain}.Infrastructure.Sqlite.Repository");
 			lines.Append( "\n{");
 			lines.Append($"\n\tpublic class {entityName}Repository : {idPattern}Repository<{entityName}>");
 			lines.Append( "\n\t{");
@@ -198,15 +194,9 @@ namespace brashcli.Process
         {
             StringBuilder lines = new StringBuilder();
 
-			lines.Append($"\nusing System;");
-			lines.Append($"\nusing System.Collections;");
-			lines.Append($"\nusing System.Collections.Generic;");
-			lines.Append($"\nusing System.Linq;");
-			lines.Append($"\nusing Brash.Model;");
 			lines.Append($"\nusing Brash.Infrastructure;");
-			lines.Append($"\nusing Brash.Infrastructure.Sqlite;");
 			lines.Append($"\n");
-			lines.Append($"\nnamespace {domain}.RepositorySql");
+			lines.Append($"\nnamespace {domain}.Infrastructure.Sqlite.RepositorySql");
 			lines.Append( "\n{");
 			lines.Append($"\n\tpublic class {entityName}RepositorySql : A{idPattern}RepositorySql");
 			lines.Append( "\n\t{");
