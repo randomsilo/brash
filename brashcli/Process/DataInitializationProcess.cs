@@ -119,6 +119,8 @@ namespace brashcli.Process
 				  { ""Name"": ""LastName"", ""Type"": ""S"" }
 				, { ""Name"": ""FirstName"", ""Type"": ""S"" }
 				, { ""Name"": ""MiddleName"", ""Type"": ""S"" }
+				, { ""Name"": ""UserName"", ""Type"": ""S"" }
+				, { ""Name"": ""Email"", ""Type"": ""S"" }
 				, { ""Name"": ""DateOfBirth"", ""Type"": ""D"" }
 			]
 			, ""References"": [
@@ -131,9 +133,8 @@ namespace brashcli.Process
 				{
 					""Name"": ""Identication""
 					, ""Fields"": [
-						{ ""Name"": ""UserName"", ""Type"": ""S"" }
-						, { ""Name"": ""Email"", ""Type"": ""S"" }
-						, { ""Name"": ""PinCode"", ""Type"": ""I"" }
+						{ ""Name"": ""PinCode"", ""Type"": ""I"" }
+						, { ""Name"": ""SSN"", ""Type"": ""S"" }
 					]
 				}
 			]

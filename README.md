@@ -34,15 +34,15 @@ dotnet run cs-domain --file /shop/randomsilo/MyProject/structure.json
 # generate sqlite repository classes
 dotnet run cs-repo-sqlite --file /shop/randomsilo/MyProject/structure.json
 
-# generate api classes
-dotnet run cs-api-sqlite --file /shop/randomsilo/MyProject/structure.json
-
 # generate xunit classes
 dotnet run cs-test-sqlite --file /shop/randomsilo/MyProject/structure.json
 
-# generate bootstrap v4 cards, forms, and drop down choices
-## materialcss, foundation are future features
-dotnet run bs-html --file /shop/randomsilo/MyProject/structure.json
+# generate service classes
+dotnet run cs-service-sqlite --file /shop/randomsilo/MyProject/structure.json
+
+# generate api classes
+dotnet run cs-api-sqlite --file /shop/randomsilo/MyProject/structure.json
+
 
 
 ```
@@ -80,6 +80,35 @@ Each object represents a table.
     * I = Integer
     * B = Blob
     * C = Clob
+  * Faker - a code string used when building the xunit tests for repo testing.
+    * Faker="YOUR_CONTENT" is the will result in m.columnName, YOUR_CONTENT)
+    * f is for Faker
+    * m is for Model
+    * Brash will skip writing the rule if you leave it off or it is blank/whitespace. 
+    * Bogus can grow and expand without changes to Brash by using this convention.
+    ```c#
+    // https://github.com/bchavez/Bogus#bogus-api-support
+
+    var myModelFaker = new Faker<MyModel>()
+        .StrictMode(false)
+        .Rules((f, m) =>
+            {
+              m.Id = f.IndexFaker();
+              m.Guid = Guid.NewGuid();
+              m.Lastname = f.Name.LastName(0);   // 0 - Male, 1 - Female
+              m.Firstname = f.Name.FirstName(0); // 0 - Male, 1 - Female
+              m.UserName = f.Internet.UserName(m.FirstName, m.LastName);
+              m.Content = f.Lorem.Paragraphs();
+              m.Created = f.Date.Past();
+              m.IsActive = f.PickRandomParam(new bool[] { true, true, false });
+              m.MetaDescription= f.Lorem.Sentences(3);
+              m.Keywords = string.Join(", ", f.Lorem.Words());
+              m.Title = f.Lorem.Sentence(10);
+            })
+        .FinishWith((f, m) => Console.WriteLine($"MyModel created. Id={m.Id}"));
+
+    var myModel = myModelFaker.Generate();
+    ```
 * References - is an array of foriegn keys to other tables. Pro tip - add reference structures to the top of the list as you define your entities.  Tables are created in top down order, parent than children.
   * ColumnName - name of the column on the table being defined
   * TableName - name of the table being reference, column name is inferred from referenced table's IdPattern
