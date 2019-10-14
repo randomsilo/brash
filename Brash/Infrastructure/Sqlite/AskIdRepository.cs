@@ -25,13 +25,52 @@ namespace Brash.Infrastructure.Sqlite
 
         public void SetId(int? id, T model)
         {
-            PropertyInfo propertyInfo = model.GetType().GetProperty(model.GetAskIdPropertyName());
-            if (propertyInfo != null)
-            {
-                Type t = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
-                object safeValue = (id == null) ? null : Convert.ChangeType(id, t);
-                propertyInfo.SetValue(model, safeValue, null);
-            }
+            // value object
+            object propertyVal = (object)id;
+
+            //find out the type
+            Type type = model.GetType();
+        
+            //get the property information based on the type
+            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(model.GetAskIdPropertyName());
+        
+            //find the property type
+            Type propertyType = propertyInfo.PropertyType;
+            
+            //Convert.ChangeType does not handle conversion to nullable types
+            //if the property type is nullable, we need to get the underlying type of the property
+            var targetType = IsNullableType(propertyInfo.PropertyType) ? Nullable.GetUnderlyingType(propertyInfo.PropertyType) : propertyInfo.PropertyType;
+            
+            //Returns an System.Object with the specified System.Type and whose value is equivalent to the specified object.
+            propertyVal = Convert.ChangeType(propertyVal, targetType);
+        
+            //Set the value of the property
+            propertyInfo.SetValue(model, propertyVal, null);
+        }
+
+        private bool IsNullableType(Type type)
+        {
+            return type.IsGenericType && type.GetGenericTypeDefinition().Equals(typeof(Nullable<>));
+        }
+
+
+        public int? GetId(T model)
+        {
+            int? id = null;
+
+            //find out the type
+            Type type = model.GetType();
+        
+            //get the property information based on the type
+            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(model.GetAskIdPropertyName());
+        
+            //find the property type
+            Type propertyType = propertyInfo.PropertyType;
+        
+            //Set the value of the property
+            id = (int?)propertyInfo.GetValue(model);
+
+            return id;
         }
 
         public ActionResult<T> Create(T model)
@@ -44,15 +83,23 @@ namespace Brash.Infrastructure.Sqlite
             };
 
             var id = PerformInsert(model);
-            if (id >= 0)
+            if (id > 0)
             {
                 SetId(id, model);
-                result.Model = PerformFetch(model).FirstOrDefault();
-                result.UpdateStatus(ActionStatus.SUCCESS, "Record created.");
+                var fetchResult = Fetch(model);
+                if (fetchResult.Status == ActionStatus.SUCCESS)
+                {
+                    result.Model = fetchResult.Model;
+                    result.UpdateStatus(ActionStatus.SUCCESS, $"Record created. ({GetId(result.Model)})");
+                }
+                else
+                {
+                    result.UpdateStatus(ActionStatus.ERROR, "Record creation failed.");
+                }
             }
             else
             {
-                result.UpdateStatus(ActionStatus.ERROR, "Record creation failed.");
+                result.UpdateStatus(ActionStatus.ERROR, "Record creation failed. (fetch failure)");
             }
 
             return result;

@@ -35,7 +35,7 @@ dotnet run cs-domain --file /shop/randomsilo/MyProject/structure.json
 dotnet run cs-repo-sqlite --file /shop/randomsilo/MyProject/structure.json
 
 # generate xunit classes
-dotnet run cs-test-sqlite --file /shop/randomsilo/MyProject/structure.json
+dotnet run cs-xtest-sqlite --file /shop/randomsilo/MyProject/structure.json
 
 # generate service classes
 dotnet run cs-service-sqlite --file /shop/randomsilo/MyProject/structure.json
@@ -93,7 +93,7 @@ Each object represents a table.
         .StrictMode(false)
         .Rules((f, m) =>
             {
-              m.Id = f.IndexFaker();
+              m.Id = f.IndexFaker;
               m.Guid = Guid.NewGuid();
               m.Lastname = f.Name.LastName(0);   // 0 - Male, 1 - Female
               m.Firstname = f.Name.FirstName(0); // 0 - Male, 1 - Female

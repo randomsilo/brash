@@ -149,13 +149,18 @@ namespace BrashTest.Repository.Sqlite
             int randomNumber = random.Next();
             Randomizer.Seed = new Random(randomNumber);
             
-            var faker = new Faker<BrashTest.Mock.Model.Person>()
-                .RuleFor(m => m.FirstName, f => f.Name.FirstName(0))
-                .RuleFor(m => m.LastName, f => f.Name.LastName(0))
-                .RuleFor(m => m.MiddleName, f => f.Name.FirstName(0))
-                .FinishWith((f, m) => Console.WriteLine($"Person modeled. FirstName={m.FirstName} LastName={m.LastName}"));
+            var personFaker = new Faker<BrashTest.Mock.Model.Person>()
+                .StrictMode(false)
+                .Rules((f, m) =>
+                {
+                    m.PersonId = f.IndexFaker;
+                    m.LastName = f.Name.LastName(0);   // 0 - Male, 1 - Female
+                    m.FirstName = f.Name.FirstName(0); // 0 - Male, 1 - Female
+                    m.MiddleName = f.Name.FirstName(0); // 0 - Male, 1 - Female
+                })
+                .FinishWith((f, m) => Console.WriteLine($"personFaker created. Id={m.PersonId}, FirstName={m.FirstName}, LastName={m.LastName}"));
 
-            var people = faker.Generate(10);
+            var people = personFaker.Generate(10);
 
             List<int?> personIds = new List<int?>();
             foreach (var p in people)

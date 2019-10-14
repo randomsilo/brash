@@ -12,20 +12,20 @@ using brashcli.Model;
 
 namespace brashcli.Process
 {
-    public class CsRepoGenerationProcess
+    public class CsXtestGenerationProcess
     {
         private ILogger _logger;
-        private CsRepoGeneration _options;
+        private CsXtestGeneration _options;
 		private string _pathProject;
-		private string _pathRepositoryDirectory;
-		private string _pathRepositorySqlDirectory;
+		private string _pathFakerDirectory;
+		private string _pathRepositoryTestDirectory;
 		private DomainStructure _domainStructure;
 		private Dictionary<string,string> _tablePrimaryKeyDataType = new Dictionary<string, string>();
 		private List<string> _columns = new List<string>();
 		private List<string> _selectColumns = new List<string>();
 		private List<string> _primaryKeyColumns = new List<string>();
 		
-        public CsRepoGenerationProcess(ILogger logger, CsRepoGeneration options)
+        public CsXtestGenerationProcess(ILogger logger, CsXtestGeneration options)
         {
             _logger = logger;
             _options = options;
@@ -36,36 +36,36 @@ namespace brashcli.Process
         {
             int returnCode = 0;
 
-            _logger.Debug("CsRepoGenerationProcess: start");
+            _logger.Debug("CsXtestGenerationProcess: start");
             do
             {
                 try 
                 {
 					ReadDataJsonFile();
-                    MakeInfrastructureDirectories();
-					CreateRepoFiles();
+                    MakeDirectories();
+					CreateXunitFiles();
                 }
                 catch(Exception exception)
                 {
-                    _logger.Error(exception, "CsRepoGenerationProcess, unhandled exception caught.");
+                    _logger.Error(exception, "CsXtestGenerationProcess, unhandled exception caught.");
                     returnCode = -1;
                     break;
                 }
 
             } while(false);
-            _logger.Debug("CsRepoGenerationProcess: end");
+            _logger.Debug("CsXtestGenerationProcess: end");
 
             return returnCode;
         }
 
-        private void MakeInfrastructureDirectories()
+        private void MakeDirectories()
         {
-			var directory = _domainStructure.Domain + "." + "Infrastructure";
-			_pathRepositoryDirectory = System.IO.Path.Combine(_pathProject, directory, "Sqlite/Repository");
-			System.IO.Directory.CreateDirectory(_pathRepositoryDirectory);
+			var directory = _domainStructure.Domain + "." + "Infrastructure.Test";
+			_pathFakerDirectory = System.IO.Path.Combine(_pathProject, directory, "Sqlite/Faker");
+			System.IO.Directory.CreateDirectory(_pathFakerDirectory);
 
-			_pathRepositorySqlDirectory = System.IO.Path.Combine(_pathProject, directory, "Sqlite/RepositorySql");
-			System.IO.Directory.CreateDirectory(_pathRepositorySqlDirectory);
+			_pathRepositoryTestDirectory = System.IO.Path.Combine(_pathProject, directory, "Sqlite/Repository");
+			System.IO.Directory.CreateDirectory(_pathRepositoryTestDirectory);
         }
 
         private void ReadDataJsonFile()
@@ -75,30 +75,30 @@ namespace brashcli.Process
 			_logger.Information($"Domain: {_domainStructure.Domain}, Structures: {_domainStructure.Structure.Count}");
         }
 
-		private void CreateRepoFiles()
+		private void CreateXunitFiles()
 		{
-			_logger.Debug("CreateRepoFiles");
+			_logger.Debug("CreateXunitFiles");
 			
 			foreach( var entry in _domainStructure.Structure)
 			{
-				MakeRepoFileFile(null, entry);
+				MakeFiles(null, entry);
 			}
 		}
 
-		private void MakeRepoFileFile( Structure parent, Structure entry)
+		private void MakeFiles( Structure parent, Structure entry)
 		{
 			_logger.Debug($"{entry.Name}");
 			if (parent != null)
 				_logger.Debug($"\t Parent: {parent.Name}");
 
-			MakeRepoFileCs(parent, entry);
-			MakeRepoSqlFileCs(parent, entry);
+			MakeFakerFileCs(parent, entry);
+			//MakeRepoFileCs(parent, entry);
 			
 			if (entry.Children != null && entry.Children.Count > 0)
 			{
 				foreach( var child in entry.Children)
 				{
-					MakeRepoFileFile(entry, child);
+					MakeFiles(entry, child);
 				}
 			}
 			
@@ -106,14 +106,14 @@ namespace brashcli.Process
 			{
 				foreach( var extension in entry.Extensions)
 				{
-					MakeRepoFileFile(entry, extension);
+					MakeFiles(entry, extension);
 				}
 			}
 		}
 
 		public string MakeRepoFilePath(Structure entry)
 		{
-			return System.IO.Path.Combine(_pathRepositoryDirectory, entry.Name + "Repository.cs");
+			return System.IO.Path.Combine(_pathFakerDirectory, entry.Name + "Repository.cs");
 		}
 
 		private void MakeRepoFileCs(Structure parent, Structure entry)
@@ -121,7 +121,7 @@ namespace brashcli.Process
 			string fileNamePath = MakeRepoFilePath(entry);
 			StringBuilder lines = new StringBuilder();
 
-			lines.Append( TplCsRepo(
+			lines.Append( TplCsXtest(
 				_domainStructure.Domain
 				, entry.Name
 				, entry.IdPattern ?? "AskId"
@@ -130,7 +130,7 @@ namespace brashcli.Process
 			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
 		}
 
-		public string TplCsRepo(
+		public string TplCsXtest(
 			string domain
 			, string entityName
 			, string idPattern
@@ -156,72 +156,77 @@ namespace brashcli.Process
             return lines.ToString();
         }
 
-		public string MakeRepoSqlFilePath(Structure entity)
+		public string MakeFakerFilePath(Structure entity)
 		{
-			return System.IO.Path.Combine(_pathRepositorySqlDirectory, entity.Name + "RepositorySql.cs");
+			return System.IO.Path.Combine(_pathFakerDirectory, entity.Name + "Faker.cs");
 		}
 
-		private void MakeRepoSqlFileCs(Structure parent, Structure entity)
+		private void MakeFakerFileCs(Structure parent, Structure entity)
 		{
-			string fileNamePath = MakeRepoSqlFilePath(entity);
+			string fileNamePath = MakeFakerFilePath(entity);
 			StringBuilder lines = new StringBuilder();
 
 			SaveTableIdDataType(entity);
 			AnalyzeStructure(parent, entity);
 
-			lines.Append( TplCsRepoSql(
+			lines.Append( TplCsFaker(
 				_domainStructure.Domain
 				, entity.Name
-				, entity.IdPattern ?? Global.IDPATTERN_ASKID
-				, BuildCreateStatement(parent, entity)
-				, BuildFetchStatement(parent, entity)
-				, BuildUpdateStatement(parent, entity)
-				, BuildDeleteStatement(parent, entity)
 			));
 
 			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
 		}
 
-		public string TplCsRepoSql(
+		public string TplCsFaker(
 			string domain
 			, string entityName
-			, string idPattern
-			, string createStatement
-			, string fetchStatement
-			, string updateStatement
-			, string deleteStatement
 			)
         {
             StringBuilder lines = new StringBuilder();
-
-			lines.Append($"\nusing Brash.Infrastructure;");
+			lines.Append($"using System;");
+			lines.Append($"\nusing System.Collections.Generic;");
+			lines.Append($"\nusing System.Linq;");
+			lines.Append($"\nusing {domain}.Domain.Model;");
 			lines.Append($"\n");
-			lines.Append($"\nnamespace {domain}.Infrastructure.Sqlite.RepositorySql");
+			lines.Append($"\nnamespace {domain}.Infrastructure.Test.Sqlite.Faker");
 			lines.Append( "\n{");
-			lines.Append($"\n\tpublic class {entityName}RepositorySql : A{idPattern}RepositorySql");
+			lines.Append($"\n\tpublic class {entityName}Faker"); 
 			lines.Append( "\n\t{");
-			lines.Append($"\n\t\tpublic {entityName}RepositorySql() : base()");
+			lines.Append($"\n\t\tprivate Bogus.Faker<{entityName}> _faker;");
+			lines.Append($"\n\t\tpublic {entityName}Faker()");
 			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\tvar random = new Random();");
+			lines.Append($"\n\t\t\tint randomNumber = random.Next();");
+			lines.Append($"\n\t\t\tBogus.Randomizer.Seed = new Random(randomNumber);");
+			lines.Append($"\n\t\t\tint counter = 1;");
+			lines.Append($"\n\t\t\t");
+			lines.Append($"\n\t\t\t// reference other fakers");
+			lines.Append($"\n\t\t\t");
+			lines.Append($"\n\t\t\t_faker = new Bogus.Faker<{entityName}>()");
+			lines.Append($"\n\t\t\t\t.StrictMode(false)");
+			lines.Append($"\n\t\t\t\t.Rules((f, m) =>");
+			lines.Append( "\n\t\t\t\t{");
 
-			lines.Append($"\n\t\t\t_sql[{idPattern}RepositorySqlTypes.CREATE] = @\"");
-			lines.Append($"\n\t\t\t{createStatement}");
-			lines.Append($"\n\t\t\t\";");
-			lines.Append($"\n");
+			lines.Append($"\n\t\t\t\t");
+			lines.Append($"\n\t\t\t\t\t// idPattern");
+			lines.Append($"\n\t\t\t\t\t// parentIdPattern");
+			lines.Append($"\n\t\t\t\t\t// fields");
+			lines.Append($"\n\t\t\t\t\t// choice");
+			lines.Append($"\n\t\t\t\t\t// references");
+			lines.Append($"\n\t\t\t\t\t// tracking");
+			lines.Append($"\n\t\t\t\t");
 
-			lines.Append($"\n\t\t\t_sql[{idPattern}RepositorySqlTypes.FETCH] = @\"");
-			lines.Append($"\n\t\t\t{fetchStatement}");
-			lines.Append($"\n\t\t\t\";");
+			lines.Append( "\n\t\t\t\t});");
+			lines.Append( "\n\t\t\t}");
 			lines.Append($"\n");
-
-			lines.Append($"\n\t\t\t_sql[{idPattern}RepositorySqlTypes.UPDATE] = @\"");
-			lines.Append($"\n\t\t\t{updateStatement}");
-			lines.Append($"\n\t\t\t\";");
-			lines.Append($"\n");
-
-			lines.Append($"\n\t\t\t_sql[{idPattern}RepositorySqlTypes.DELETE] = @\"");
-			lines.Append($"\n\t\t\t{deleteStatement}");
-			lines.Append($"\n\t\t\t\";");
-			lines.Append($"\n");
+			lines.Append($"\n\t\tpublic {entityName} GetOne()");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\treturn _faker.Generate(1).First();");
+			lines.Append( "\n\t\t}");
+			lines.Append($"\n\t\t");
+			lines.Append($"\n\t\tpublic List<{entityName}> GetMany(int count)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\treturn _faker.Generate(count);");
 			lines.Append( "\n\t\t}");
 			lines.Append( "\n\t}");
 			lines.Append( "\n}");
@@ -584,7 +589,7 @@ namespace brashcli.Process
 			StringBuilder statement = new StringBuilder();
 			bool addComma = false;
 
-			statement.Append($"DELETE FROM {entity.Name}");
+			statement.Append($"DELETE {entity.Name}");
 			statement.Append($"\n\t\t\tWHERE");
 			
 			addComma = false;
