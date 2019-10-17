@@ -105,7 +105,7 @@ namespace brashcli.Process
 				""Choice""
 			]
 			, ""Fields"": [
-				{ ""Name"": ""Abbreviation"", ""Type"": ""S"" }
+				{ ""Name"": ""Abbreviation"", ""Type"": ""S"", ""Faker"": ""f.Address.StateAbbr()"" }
 			]
 			, ""AdditionalSqlStatements"": [
 				""INSERT INTO UsState (ChoiceName, Abbreviation, OrderNo) VALUES ('Nebraska', 'NE', (SELECT IFNULL(MAX(OrderNo),0)+1 FROM UsState));""
@@ -116,11 +116,11 @@ namespace brashcli.Process
 		, {
 			""Name"": ""Person""
 			, ""Fields"": [
-				  { ""Name"": ""LastName"", ""Type"": ""S"" }
-				, { ""Name"": ""FirstName"", ""Type"": ""S"" }
-				, { ""Name"": ""MiddleName"", ""Type"": ""S"" }
-				, { ""Name"": ""UserName"", ""Type"": ""S"" }
-				, { ""Name"": ""Email"", ""Type"": ""S"" }
+				  { ""Name"": ""LastName"", ""Type"": ""S"", ""Faker"": ""f.Name.LastName(0)"" }
+				, { ""Name"": ""FirstName"", ""Type"": ""S"", ""Faker"": ""f.Name.FirstName(0)"" }
+				, { ""Name"": ""MiddleName"", ""Type"": ""S"", ""Faker"": ""f.Name.FirstName(0)"" }
+				, { ""Name"": ""UserName"", ""Type"": ""S"", ""Faker"": ""f.Internet.UserName(m.FirstName, m.LastName)"" }
+				, { ""Name"": ""Email"", ""Type"": ""S"", ""Faker"": ""f.Internet.Email(m.FirstName, m.LastName)"" }
 				, { ""Name"": ""DateOfBirth"", ""Type"": ""D"" }
 			]
 			, ""References"": [
@@ -156,10 +156,10 @@ namespace brashcli.Process
 					""Name"": ""Address""
 					, ""Fields"": [
 						  { ""Name"": ""Attention"", ""Type"": ""S"" }
-						  , { ""Name"": ""AddressLine1"", ""Type"": ""S"" }
+						  , { ""Name"": ""AddressLine1"", ""Type"": ""S"", ""Faker"": ""f.Address.StreetAddress()"" }
 						  , { ""Name"": ""AddressLine2"", ""Type"": ""S"" }
-						  , { ""Name"": ""City"", ""Type"": ""S"" }
-						  , { ""Name"": ""PostalCode"", ""Type"": ""S"" }
+						  , { ""Name"": ""City"", ""Type"": ""S"", ""Faker"": ""f.Address.City()"" }
+						  , { ""Name"": ""PostalCode"", ""Type"": ""S"", ""Faker"": ""f.Address.ZipCode()"" }
 					]
 					, ""References"": [
 						{

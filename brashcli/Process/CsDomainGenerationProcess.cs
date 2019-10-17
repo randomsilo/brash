@@ -252,7 +252,7 @@ namespace brashcli.Process
 						_interfaces.Add("IAskGuidChild");
 
 						_fields.Append("\n\t\t");
-						_fields.Append($"Guid? {parent.Name}Guid");
+						_fields.Append($"public Guid? {parent.Name}Guid");
 						_fields.Append(" { get; set; }");
 
 
@@ -266,11 +266,11 @@ namespace brashcli.Process
 						_interfaces.Add("IAskVersionChild");
 
 						_fields.Append("\n\t\t");
-						_fields.Append($"Guid? {parent.Name}Guid");
+						_fields.Append($"public Guid? {parent.Name}Guid");
 						_fields.Append(" { get; set; }");
 
 						_fields.Append("\n\t\t");
-						_fields.Append($"int? {parent.Name}RecordVersion");
+						_fields.Append($"public int? {parent.Name}RecordVersion");
 						_fields.Append(" { get; set; }");
 
 						_interfaceImplementations.Append("\n\t\t");
@@ -284,7 +284,7 @@ namespace brashcli.Process
 						_interfaces.Add("IAskIdChild");
 
 						_fields.Append("\n\t\t");
-						_fields.Append($"int? {parent.Name}Id");
+						_fields.Append($"public int? {parent.Name}Id");
 						_fields.Append(" { get; set; }");
 
 						_interfaceImplementations.Append("\n\t\t");

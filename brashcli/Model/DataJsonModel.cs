@@ -9,6 +9,7 @@ namespace brashcli.Model
     {
         public string Name { get; set; }
         public string Type { get; set; }
+        public string Faker { get; set; }
     }
 
     public class Reference

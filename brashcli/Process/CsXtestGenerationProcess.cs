@@ -21,9 +21,9 @@ namespace brashcli.Process
 		private string _pathRepositoryTestDirectory;
 		private DomainStructure _domainStructure;
 		private Dictionary<string,string> _tablePrimaryKeyDataType = new Dictionary<string, string>();
-		private List<string> _columns = new List<string>();
-		private List<string> _selectColumns = new List<string>();
-		private List<string> _primaryKeyColumns = new List<string>();
+		private List<string> _ruleStatements = new List<string>();
+		private List<string> _fakerStatements = new List<string>();
+		private List<string> _repoStatements = new List<string>();
 		
         public CsXtestGenerationProcess(ILogger logger, CsXtestGeneration options)
         {
@@ -200,24 +200,26 @@ namespace brashcli.Process
 			lines.Append($"\n\t\t\tBogus.Randomizer.Seed = new Random(randomNumber);");
 			lines.Append($"\n\t\t\tint counter = 1;");
 			lines.Append($"\n\t\t\t");
-			lines.Append($"\n\t\t\t// reference other fakers");
-			lines.Append($"\n\t\t\t");
+
+			foreach( var fakerStatement in _fakerStatements)
+			{
+				lines.Append($"\n\t\t\t");
+				lines.Append(fakerStatement);
+			}
+
 			lines.Append($"\n\t\t\t_faker = new Bogus.Faker<{entityName}>()");
 			lines.Append($"\n\t\t\t\t.StrictMode(false)");
 			lines.Append($"\n\t\t\t\t.Rules((f, m) =>");
 			lines.Append( "\n\t\t\t\t{");
 
-			lines.Append($"\n\t\t\t\t");
-			lines.Append($"\n\t\t\t\t\t// idPattern");
-			lines.Append($"\n\t\t\t\t\t// parentIdPattern");
-			lines.Append($"\n\t\t\t\t\t// fields");
-			lines.Append($"\n\t\t\t\t\t// choice");
-			lines.Append($"\n\t\t\t\t\t// references");
-			lines.Append($"\n\t\t\t\t\t// tracking");
-			lines.Append($"\n\t\t\t\t");
+			foreach( var ruleStatement in _ruleStatements)
+			{
+				lines.Append($"\n\t\t\t\t\t");
+				lines.Append(ruleStatement);
+			}
 
 			lines.Append( "\n\t\t\t\t});");
-			lines.Append( "\n\t\t\t}");
+			lines.Append( "\n\t\t}");
 			lines.Append($"\n");
 			lines.Append($"\n\t\tpublic {entityName} GetOne()");
 			lines.Append( "\n\t\t{");
@@ -241,56 +243,47 @@ namespace brashcli.Process
 
 		private void AnalyzeStructure(Structure parent, Structure entity)
 		{
-			_columns = new List<string>();
-			_selectColumns = new List<string>();
-			_primaryKeyColumns = new List<string>();
+			_ruleStatements = new List<string>();
+			_fakerStatements = new List<string>();
+			_repoStatements = new List<string>();
 
 			switch(entity.IdPattern)
 			{
 				case Global.IDPATTERN_ASKGUID:
-					_columns.Add($"{entity.Name}Guid");
-					_selectColumns.Add($"{entity.Name}Guid");
-					_primaryKeyColumns.Add($"{entity.Name}Guid");
+					_ruleStatements.Add($"m.{entity.Name}Guid = new Guid();");
 					break;
 				case Global.IDPATTERN_ASKVERSION:
-					_columns.Add($"{entity.Name}Guid");
-					_selectColumns.Add($"{entity.Name}Guid");
-					_primaryKeyColumns.Add($"{entity.Name}Guid");
-
-					_columns.Add($"{entity.Name}RecordVersion");
-					_selectColumns.Add($"{entity.Name}RecordVersion");
-					_primaryKeyColumns.Add($"{entity.Name}RecordVersion");
-
-					_columns.Add($"IsCurrent");
-					_selectColumns.Add($"IsCurrent");
+					_ruleStatements.Add($"m.{entity.Name}Guid = new Guid();");
+					_ruleStatements.Add($"m.{entity.Name}RecordVersion = 1;");
+					_ruleStatements.Add($"m.IsCurrent = true;");
 					break;
 				case Global.IDPATTERN_ASKID:
 				default:
-					_columns.Add($"{entity.Name}Id");
-					_selectColumns.Add($"{entity.Name}Id");
-					_primaryKeyColumns.Add($"{entity.Name}Id");
+					_ruleStatements.Add($"m.{entity.Name}Id = null;");
 					break;
 			}
 
 			if (parent != null)
 			{
+				_fakerStatements.Add($"var parentFaker = new {parent.Name}Faker();");
+				_fakerStatements.Add($"var parent = parentFaker.GetOne();");
+				_fakerStatements.Add($"// add repo");
+				_fakerStatements.Add($"// add parent");
+				_fakerStatements.Add($"// fetch parent for id");
+				_fakerStatements.Add($"");
+
 				switch(parent.IdPattern)
 				{
 					case Global.IDPATTERN_ASKGUID:
-						_columns.Add($"{parent.Name}Guid");
-						_selectColumns.Add($"{parent.Name}Guid");
+						_ruleStatements.Add($"m.{parent.Name}Guid = parent.{parent.Name}Guid;");
 						break;
 					case Global.IDPATTERN_ASKVERSION:
-						_columns.Add($"{parent.Name}Guid");
-						_selectColumns.Add($"{parent.Name}Guid");
-
-						_columns.Add($"{parent.Name}RecordVersion");
-						_selectColumns.Add($"{parent.Name}RecordVersion");
+						_ruleStatements.Add($"m.{parent.Name}Guid = parent.{parent.Name}Guid;");
+						_ruleStatements.Add($"m.{parent.Name}RecordVersion = parent.{parent.Name}RecordVersion;");
 						break;
 					case Global.IDPATTERN_ASKID:
 					default:
-						_columns.Add($"{parent.Name}Id");
-						_selectColumns.Add($"{parent.Name}Id");
+						_ruleStatements.Add($"m.{parent.Name}Id = parent.{parent.Name}Id;");
 						break;
 				}
 			}
@@ -302,15 +295,9 @@ namespace brashcli.Process
 					switch(pattern)
 					{
 						case Global.ADDITIONALPATTERN_CHOICE:
-							_columns.Add($"ChoiceName");
-							_selectColumns.Add($"ChoiceName");
-
-							_columns.Add($"OrderNo");
-							_selectColumns.Add($"OrderNo");
-
-							_columns.Add($"IsDisabled");
-							_selectColumns.Add($"IsDisabled");
-
+							_ruleStatements.Add("m.ChoiceName = f.Lorem.Sentence(3);");
+							_ruleStatements.Add($"m.OrderNo = counter++;");
+							_ruleStatements.Add($"m.IsDisabled = false;");
 							break;
 						default:
 							string msg = $"Additional Pattern: {pattern} not found.  Entity {entity.Name} has an error.";
@@ -339,24 +326,49 @@ namespace brashcli.Process
 
 		private void AddField(Field field)
 		{
-			switch(field.Type)
+			if (string.IsNullOrWhiteSpace(field.Faker))
 			{
-				case "D":
-				case "N":
-					_columns.Add($"{field.Name}");
-					_selectColumns.Add($"datetime({field.Name},'unixepoch') AS {field.Name}");
-					break;
-				case "B":
-					throw new NotImplementedException();
-				case "F":
-				case "I":
-				case "S":
-				case "C":
-				case "G":
-				default:
-					_columns.Add($"{field.Name}");
-					_selectColumns.Add($"{field.Name}");
-					break;
+				switch(field.Type)
+				{
+					case "D":
+						_ruleStatements.Add($"m.{field.Name} = f.Date.Past();");
+						break;
+					case "N":
+						_ruleStatements.Add($"m.{field.Name} = f.Random.Decimal();");
+						break;
+					case "B":
+						throw new NotImplementedException();
+					case "F":
+						_ruleStatements.Add($"m.{field.Name} = f.Random.Double();");
+						break;
+					case "I":
+						_ruleStatements.Add($"m.{field.Name} = f.Random.Int();");
+						break;
+					case "S":
+						_ruleStatements.Add($"m.{field.Name} = f.Lorem.Sentence(10);");
+						break;
+					case "C":
+						_ruleStatements.Add($"m.{field.Name} = f.Lorem.Paragraphs();");
+						break;
+					case "G":
+						_ruleStatements.Add($"m.{field.Name} = new Guid();");
+						break;
+					default:
+						_ruleStatements.Add($"m.{field.Name} = f.Lorem.Sentence(3);");
+						break;
+				}
+			}
+			else
+			{
+				if (field.Faker.EndsWith(';'))
+				{
+					_ruleStatements.Add($"m.{field.Name} = {field.Faker}");
+				}
+				else
+				{
+					_ruleStatements.Add($"m.{field.Name} = {field.Faker};");
+				}
+				
 			}
 		}
 
@@ -373,24 +385,26 @@ namespace brashcli.Process
 
 		private void AddReferenceFields( Reference reference)
 		{
+			_fakerStatements.Add($"var {reference.ColumnName}Faker = new {reference.TableName}Faker();");
+			_fakerStatements.Add($"var {reference.ColumnName}Fake = {reference.ColumnName}Faker.GetOne();");
+			_fakerStatements.Add($"// add repo");
+			_fakerStatements.Add($"// add model");
+			_fakerStatements.Add($"// fetch model for id");
+			_fakerStatements.Add($"");
+
 			string idPattern = _tablePrimaryKeyDataType[reference.TableName];
 			switch(idPattern)
 			{
 				case Global.IDPATTERN_ASKGUID:
-					_columns.Add($"{reference.ColumnName}GuidRef");
-					_selectColumns.Add($"{reference.ColumnName}GuidRef");
+					_ruleStatements.Add($"m.{reference.ColumnName}GuidRef = {reference.ColumnName}Fake.{reference.TableName}Guid;");
 					break;
 				case Global.IDPATTERN_ASKVERSION:
-					_columns.Add($"{reference.ColumnName}GuidRef");
-					_selectColumns.Add($"{reference.ColumnName}GuidRef");
-
-					_columns.Add($"{reference.ColumnName}RecordVersionRef");
-					_selectColumns.Add($"{reference.ColumnName}RecordVersionRef");
+					_ruleStatements.Add($"m.{reference.ColumnName}GuidRef = {reference.ColumnName}Fake.{reference.TableName}Guid;");
+					_ruleStatements.Add($"m.{reference.ColumnName}RecordVersionRef = {reference.ColumnName}Fake.{reference.TableName}RecordVersion;");
 					break;
 				case Global.IDPATTERN_ASKID:
 				default:
-					_columns.Add($"{reference.ColumnName}IdRef");
-					_selectColumns.Add($"{reference.ColumnName}IdRef");
+					_ruleStatements.Add($"m.{reference.ColumnName}IdRef = {reference.ColumnName}Fake.{reference.TableName}Id;");
 					break;
 			}
 		}
@@ -403,46 +417,23 @@ namespace brashcli.Process
 				switch(pattern)
 				{
 					case Global.TRACKINGPATTERN_AUDIT:
-						_columns.Add($"CreatedBy");
-						_selectColumns.Add($"CreatedBy");
-
-						_columns.Add($"CreatedOn");
-						_selectColumns.Add($"datetime(CreatedOn,'unixepoch') AS CreatedOn");
-
-						_columns.Add($"UpdatedBy");
-						_selectColumns.Add($"UpdatedBy");
-
-						_columns.Add($"UpdatedOn");
-						_selectColumns.Add($"datetime(UpdatedOn,'unixepoch') AS UpdatedOn");
+						_ruleStatements.Add($"m.CreatedBy = f.Internet.UserName(f.Name.FirstName(0), f.Name.LastName(0));");
+						_ruleStatements.Add($"m.CreatedOn = f.Date.Past();");
+						_ruleStatements.Add($"m.UpdatedBy = f.Internet.UserName(f.Name.FirstName(0), f.Name.LastName(0));");
+						_ruleStatements.Add($"m.UpdatedOn = f.Date.Recent();");
 						break;
 					case Global.TRACKINGPATTERN_AUDITPRESERVE:
-						_columns.Add($"CreatedBy");
-						_selectColumns.Add($"CreatedBy");
-
-						_columns.Add($"CreatedOn");
-						_selectColumns.Add($"datetime(CreatedOn,'unixepoch') AS CreatedOn");
-
-						_columns.Add($"UpdatedBy");
-						_selectColumns.Add($"UpdatedBy");
-
-						_columns.Add($"UpdatedOn");
-						_selectColumns.Add($"datetime(UpdatedOn,'unixepoch') AS UpdatedOn");
-
-						_columns.Add($"IsDeleted");
-						_selectColumns.Add($"IsDeleted");
+						_ruleStatements.Add($"m.CreatedBy = f.Internet.UserName(f.Name.FirstName(0), f.Name.LastName(0));");
+						_ruleStatements.Add($"m.CreatedOn = f.Date.Past();");
+						_ruleStatements.Add($"m.UpdatedBy = f.Internet.UserName(f.Name.FirstName(0), f.Name.LastName(0));");
+						_ruleStatements.Add($"m.UpdatedOn = f.Date.Recent();");
+						_ruleStatements.Add($"m.IsDeleted = false;");
 						break;
 					case Global.TRACKINGPATTERN_VERSION:
-						_columns.Add($"RecordState");
-						_selectColumns.Add($"RecordState");
-
-						_columns.Add($"PerformedBy");
-						_selectColumns.Add($"PerformedBy");
-
-						_columns.Add($"PerformedOn");
-						_selectColumns.Add($"datetime(PerformedOn,'unixepoch') AS PerformedOn");
-
-						_columns.Add($"PerformedReason");
-						_selectColumns.Add($"PerformedReason");
+						_ruleStatements.Add($"RecordState = \"Created\"; // Created, Updated, Deleted, Restored");
+						_ruleStatements.Add($"m.PerformedBy = f.Internet.UserName(f.Name.FirstName(0), f.Name.LastName(0));");
+						_ruleStatements.Add($"m.PerformedOn = f.Date.Past();");
+						_ruleStatements.Add("m.PerformedReason = f.PickRandomParam(new string[] { \"Reason 1\", \"Reason 2\", \"Reason 3\"});");
 						break;
 					default:
 						string msg = $"Tracking Pattern: {pattern} not found.  Entity {entity.Name} has an error.";
@@ -453,160 +444,6 @@ namespace brashcli.Process
 		}
 
 
-		private string BuildCreateStatement(Structure parent, Structure entity)
-		{
-			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
-
-			statement.Append($"INSERT INTO {entity.Name} (");
-			statement.Append($"\n\t\t\t\t--- Columns");
-
-			addComma = false;
-			foreach( var column in _columns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\t) VALUES (");
-			
-			statement.Append($"\n\t\t\t\t--- Values");
-
-			addComma = false;
-			foreach( var column in _columns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"@{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\t);");
-			statement.Append($"\n\t\t\tSELECT last_insert_rowid();");
-
-			return statement.ToString();
-		}
-
-		private string BuildFetchStatement(Structure parent, Structure entity)
-		{
-			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
-
-			statement.Append($"SELECT");
-			statement.Append($"\n\t\t\t\t--- Columns");
-
-			addComma = false;
-			foreach( var column in _columns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\tFROM");
-			statement.Append($"\n\t\t\t\t{entity.Name}");
-			statement.Append($"\n\t\t\tWHERE");
-			
-			addComma = false;
-			foreach( var column in _primaryKeyColumns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column} = @{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\t;");
-
-			return statement.ToString();
-		}
-
-		private string BuildUpdateStatement(Structure parent, Structure entity)
-		{
-			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
-
-			statement.Append($"UPDATE {entity.Name}");
-			statement.Append($"\n\t\t\tSET");
-
-			addComma = false;
-			foreach( var column in _columns)
-			{
-				if (_primaryKeyColumns.Contains(column))
-					continue;
-
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column} = @{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\tWHERE");
-			
-			addComma = false;
-			foreach( var column in _primaryKeyColumns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column} = @{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\t;");
-
-			return statement.ToString();
-		}
-
-		private string BuildDeleteStatement(Structure parent, Structure entity)
-		{
-			if (entity.TrackingPattern != null && entity.TrackingPattern.Equals(Global.TRACKINGPATTERN_AUDITPRESERVE))
-			{
-				return BuildDeleteUpdateFlagStatement(parent, entity);
-			}
-			else
-			{
-				return BuildDeleteStatementActual(parent, entity);
-			}
-		}
-
-		private string BuildDeleteStatementActual(Structure parent, Structure entity)
-		{
-			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
-
-			statement.Append($"DELETE {entity.Name}");
-			statement.Append($"\n\t\t\tWHERE");
-			
-			addComma = false;
-			foreach( var column in _primaryKeyColumns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column} = @{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\t;");
-
-			return statement.ToString();
-		}
 
 		private string BuildDeleteUpdateFlagStatement(Structure parent, Structure entity)
 		{
@@ -618,7 +455,7 @@ namespace brashcli.Process
 			statement.Append($"\n\t\t\tWHERE");
 			
 			addComma = false;
-			foreach( var column in _primaryKeyColumns)
+			foreach( var column in _repoStatements)
 			{
 				statement.Append($"\n\t\t\t\t");
 				if (addComma)

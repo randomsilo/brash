@@ -81,7 +81,7 @@ Each object represents a table.
     * B = Blob
     * C = Clob
   * Faker - a code string used when building the xunit tests for repo testing.
-    * Faker="YOUR_CONTENT" is the will result in m.columnName, YOUR_CONTENT)
+    * Faker="YOUR_CONTENT" is the will result in m.columnName = YOUR_CONTENT;
     * f is for Faker
     * m is for Model
     * Brash will skip writing the rule if you leave it off or it is blank/whitespace. 
