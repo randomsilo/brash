@@ -25,6 +25,7 @@ namespace brashcli.Process
 		private List<string> _ruleStatements = new List<string>();
 		private List<string> _fakerStatements = new List<string>();
 		private List<string> _repoStatements = new List<string>();
+		private bool _addCounter = false;
 		
         public CsXtestGenerationProcess(ILogger logger, CsXtestGeneration options)
         {
@@ -93,7 +94,7 @@ namespace brashcli.Process
 				_logger.Debug($"\t Parent: {parent.Name}");
 
 			MakeFakerFileCs(parent, entry);
-			//MakeRepoFileCs(parent, entry);
+			MakeRepoTestFileCs(parent, entry);
 			
 			if (entry.Children != null && entry.Children.Count > 0)
 			{
@@ -112,50 +113,203 @@ namespace brashcli.Process
 			}
 		}
 
-		public string MakeRepoFilePath(Structure entry)
+		public string MakeRepoTestFilePath(Structure entry)
 		{
-			return System.IO.Path.Combine(_pathFakerDirectory, entry.Name + "Repository.cs");
+			return System.IO.Path.Combine(_pathRepositoryTestDirectory, entry.Name + "RepositoryTest.cs");
 		}
 
-		private void MakeRepoFileCs(Structure parent, Structure entry)
+		private void MakeRepoTestFileCs(Structure parent, Structure entry)
 		{
-			string fileNamePath = MakeRepoFilePath(entry);
+			string fileNamePath = MakeRepoTestFilePath(entry);
 			StringBuilder lines = new StringBuilder();
 
-			lines.Append( TplCsXtest(
+			lines.Append( TplCsRepoXtest(
 				_domainStructure.Domain
 				, entry.Name
 				, entry.IdPattern ?? "AskId"
+				, _pathProject
 			));
 
 			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
 		}
 
-		public string TplCsXtest(
+		public string TplCsRepoXtest(
 			string domain
 			, string entityName
 			, string idPattern
+			, string basePath
+			)
+        {
+            string template = null;
+
+			switch(idPattern)
+			{
+				case Global.IDPATTERN_ASKGUID:
+					template = TplCsRepoXtestAskGuid(domain, entityName, idPattern, basePath);
+					break;
+				case Global.IDPATTERN_ASKVERSION:
+					template = TplCsRepoXtestAskVersion(domain, entityName, idPattern, basePath);
+					break;
+				case Global.IDPATTERN_ASKID:
+				default:
+					template = TplCsRepoXtestAskId(domain, entityName, idPattern, basePath);
+					break;
+			}
+
+            return template;
+        }
+
+		public string TplCsRepoXtestAskId(
+			string domain
+			, string entityName
+			, string idPattern
+			, string projectPath
 			)
         {
             StringBuilder lines = new StringBuilder();
 
+			lines.Append($"\nusing System.Collections.Generic;");
+			lines.Append($"\nusing System.Reflection;");
+			lines.Append($"\nusing Xunit;");
 			lines.Append($"\nusing Brash.Infrastructure;");
 			lines.Append($"\nusing Brash.Infrastructure.Sqlite;");
 			lines.Append($"\nusing {domain}.Domain.Model;");
+			lines.Append($"\nusing {domain}.Infrastructure.Sqlite.Repository;");
+			lines.Append($"\nusing {domain}.Infrastructure.Sqlite.RepositorySql;");
+			lines.Append($"\nusing {domain}.Infrastructure.Test.Sqlite.Faker;");
 			lines.Append($"\n");
-			lines.Append($"\nnamespace {domain}.Infrastructure.Sqlite.Repository");
+			lines.Append($"\nnamespace {domain}.Infrastructure.Test.Sqlite.Repository");
 			lines.Append( "\n{");
-			lines.Append($"\n\tpublic class {entityName}Repository : {idPattern}Repository<{entityName}>");
+			lines.Append($"\n\tpublic class {entityName}RepositoryTest");
 			lines.Append( "\n\t{");
-			lines.Append($"\n\t\tpublic {entityName}Repository(IManageDatabase databaseManager) : base(databaseManager)");
+			lines.Append($"\n\t\tpublic string GetDatabase(string path, MethodBase methodBase)");
 			lines.Append( "\n\t\t{");
-			lines.Append($"\n\t\t\t");
+			lines.Append( "\n\t\t\tstring dbName = $\"{methodBase.ReflectedType.Name}_{methodBase.Name}\";"); 
+			lines.Append( "\n\t\t\tstring databaseFile = $\"{path}/{dbName}.sqlite\";");
+			lines.Append($"\n\t\t\tSystem.IO.File.Delete(databaseFile);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\treturn databaseFile;");
 			lines.Append( "\n\t\t}");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t[Fact]");
+			lines.Append($"\n\t\tpublic void CreateUpdateDeleteFetch()");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\t// file system");
+			lines.Append($"\n\t\t\tvar path = \"{projectPath}\";");
+			lines.Append($"\n\t\t\tvar project = \"{domain}\";");
+			lines.Append( "\n\t\t\tvar databaseFile = GetDatabase($\"{path}/{project}.Infrastructure.Test/TestOutput/\", MethodBase.GetCurrentMethod());");
+			lines.Append($"\n\t\t\t");
+			lines.Append($"\n\t\t\t// database setup");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - context");
+			lines.Append($"\n\t\t\tIDatabaseContext databaseContext = new DatabaseContext(");
+			lines.Append( "\n\t\t\t\t$\"Data Source={databaseFile}\" ");
+			lines.Append($"\n\t\t\t\t, \"TestDb\"");
+			lines.Append($"\n\t\t\t\t, \"TestSchema\"");
+			lines.Append( "\n\t\t\t\t, $\"{path}/sql/sqlite/ALL.sql\"");
+			lines.Append($"\n\t\t\t);");
+			lines.Append($"\n\t\t\tAssert.NotNull(databaseContext);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - manager");
+			lines.Append($"\n\t\t\tIManageDatabase databaseManager = new DatabaseManager(databaseContext);");
+			lines.Append($"\n\t\t\tAssert.NotNull(databaseManager);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - create tables");
+			lines.Append($"\n\t\t\tdatabaseManager.CreateDatabase();");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - repository");
+			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}Repository = new {entityName}Repository(databaseManager, new {entityName}RepositorySql());");
+			lines.Append($"\n\t\t\tAssert.NotNull({entityName.ToLowerFirstChar()}Repository);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// faker");
+			lines.Append($"\n\t\t\tActionResult<{entityName}> result = null;");
+			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}Faker = new {entityName}Faker(databaseManager);");
+			lines.Append($"\n\t\t\tAssert.NotNull({entityName.ToLowerFirstChar()}Faker);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// create");
+			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}CreateModel = {entityName.ToLowerFirstChar()}Faker.GetOne();");
+			lines.Append($"\n\t\t\tresult = {entityName.ToLowerFirstChar()}Repository.Create({entityName.ToLowerFirstChar()}CreateModel);");
+			lines.Append($"\n\t\t\tAssert.True(result.Status == ActionStatus.SUCCESS);");
+			lines.Append($"\n\t\t\tAssert.True(result.Model.{entityName}Id > 0);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// use model with id");
+			lines.Append($"\n\t\t\t{entityName.ToLowerFirstChar()}CreateModel = result.Model;");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// update");
+			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}UpdateModel = {entityName.ToLowerFirstChar()}Faker.GetOne();");
+			lines.Append($"\n\t\t\t{entityName.ToLowerFirstChar()}UpdateModel.{entityName}Id = {entityName.ToLowerFirstChar()}CreateModel.{entityName}Id;");
+			lines.Append($"\n\t\t\tresult = {entityName.ToLowerFirstChar()}Repository.Update({entityName.ToLowerFirstChar()}UpdateModel);");
+			lines.Append($"\n\t\t\tAssert.True(result.Status == ActionStatus.SUCCESS, result.Message);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// delete");
+			lines.Append($"\n\t\t\tresult = {entityName.ToLowerFirstChar()}Repository.Delete({entityName.ToLowerFirstChar()}CreateModel);");
+			lines.Append($"\n\t\t\tAssert.True(result.Status == ActionStatus.SUCCESS);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// fetch"); 
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - make fakes");
+			lines.Append($"\n\t\t\tvar fakes = {entityName.ToLowerFirstChar()}Faker.GetMany(10);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - add fakes to database");
+			lines.Append($"\n\t\t\tList<int?> ids = new List<int?>();");
+			lines.Append($"\n\t\t\tforeach (var f in fakes)");
+			lines.Append( "\n\t\t\t{");
+			lines.Append($"\n\t\t\t\tresult = {entityName.ToLowerFirstChar()}Repository.Create(f);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t\tAssert.True(result.Status == ActionStatus.SUCCESS);");
+			lines.Append($"\n\t\t\t\tAssert.True(result.Model.{entityName}Id >= 0);");
+			lines.Append($"\n\t\t\t\tids.Add(result.Model.{entityName}Id);");
+			lines.Append( "\n\t\t\t}");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - get fakes from database");
+			lines.Append($"\n\t\t\tforeach(var id in ids)");
+			lines.Append( "\n\t\t\t{");
+			lines.Append($"\n\t\t\t\tvar model = new {entityName}()"); 
+			lines.Append( "\n\t\t\t\t{");
+			lines.Append($"\n\t\t\t\t\t{entityName}Id = id");
+			lines.Append( "\n\t\t\t\t};");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t\tresult = {entityName.ToLowerFirstChar()}Repository.Fetch(model);");
+			lines.Append($"\n\t\t\t\tAssert.True(result.Status == ActionStatus.SUCCESS);");
+			lines.Append($"\n\t\t\t\tAssert.True(result.Model.{entityName}Id >= 0);");
+			lines.Append( "\n\t\t\t}");
+			lines.Append( "\n\t\t}");
+			lines.Append($"\n");
 			lines.Append( "\n\t}");
 			lines.Append( "\n}");
 
-            return lines.ToString();
-        }
+			return lines.ToString();
+		}
+
+		public string TplCsRepoXtestAskGuid(
+			string domain
+			, string entityName
+			, string idPattern
+			, string projectPath
+			)
+        {
+            StringBuilder lines = new StringBuilder();
+
+			throw new NotImplementedException();
+
+			//return lines.ToString();
+		}
+
+		public string TplCsRepoXtestAskVersion(
+			string domain
+			, string entityName
+			, string idPattern
+			, string projectPath
+			)
+        {
+            StringBuilder lines = new StringBuilder();
+
+			throw new NotImplementedException();
+
+			//return lines.ToString();
+		}
+
+
 
 		public string MakeFakerFilePath(Structure entity)
 		{
@@ -202,7 +356,11 @@ namespace brashcli.Process
 			lines.Append($"\n\t\t\tvar random = new Random();");
 			lines.Append($"\n\t\t\tint randomNumber = random.Next();");
 			lines.Append($"\n\t\t\tBogus.Randomizer.Seed = new Random(randomNumber);");
-			lines.Append($"\n\t\t\tint counter = 1;");
+			if (_addCounter)
+			{
+				lines.Append($"\n\t\t\tint counter = 1;");
+			}
+			
 			lines.Append($"\n\t\t\t");
 
 			foreach( var fakerStatement in _fakerStatements)
@@ -247,6 +405,7 @@ namespace brashcli.Process
 
 		private void AnalyzeStructure(Structure parent, Structure entity)
 		{
+			_addCounter = false;
 			_ruleStatements = new List<string>();
 			_fakerStatements = new List<string>();
 			_repoStatements = new List<string>();
@@ -299,6 +458,7 @@ namespace brashcli.Process
 					switch(pattern)
 					{
 						case Global.ADDITIONALPATTERN_CHOICE:
+							_addCounter = true;
 							_ruleStatements.Add("m.ChoiceName = f.Lorem.Sentence(3);");
 							_ruleStatements.Add($"m.OrderNo = counter++;");
 							_ruleStatements.Add($"m.IsDisabled = false;");

@@ -336,13 +336,14 @@ namespace brashcli.Process
 		{
 			switch(field.Type)
 			{
+				
 				case "D":
-				case "N":
 					_columns.Add($"{field.Name}");
 					_selectColumns.Add($"datetime({field.Name},'unixepoch') AS {field.Name}");
 					break;
 				case "B":
 					throw new NotImplementedException();
+				case "N":
 				case "F":
 				case "I":
 				case "S":
@@ -497,7 +498,7 @@ namespace brashcli.Process
 			statement.Append($"\n\t\t\t\t--- Columns");
 
 			addComma = false;
-			foreach( var column in _columns)
+			foreach( var column in _selectColumns)
 			{
 				statement.Append($"\n\t\t\t\t");
 				if (addComma)
