@@ -146,7 +146,7 @@ namespace brashcli.Process
 			lines.Append( "\n{");
 			lines.Append($"\n\tpublic class {entityName}Repository : {idPattern}Repository<{entityName}>");
 			lines.Append( "\n\t{");
-			lines.Append($"\n\t\tpublic {entityName}Repository(IManageDatabase databaseManager) : base(databaseManager)");
+			lines.Append($"\n\t\tpublic {entityName}Repository(IManageDatabase databaseManager, AAskIdRepositorySql repositorySql) : base(databaseManager, repositorySql)");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\t");
 			lines.Append( "\n\t\t}");

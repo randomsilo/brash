@@ -187,14 +187,17 @@ namespace brashcli.Process
 			lines.Append($"using System;");
 			lines.Append($"\nusing System.Collections.Generic;");
 			lines.Append($"\nusing System.Linq;");
+			lines.Append($"\nusing Brash.Infrastructure;");
 			lines.Append($"\nusing {domain}.Domain.Model;");
+			lines.Append($"\nusing {domain}.Infrastructure.Sqlite.Repository;");
+			lines.Append($"\nusing {domain}.Infrastructure.Sqlite.RepositorySql;");
 			lines.Append($"\n");
 			lines.Append($"\nnamespace {domain}.Infrastructure.Test.Sqlite.Faker");
 			lines.Append( "\n{");
 			lines.Append($"\n\tpublic class {entityName}Faker"); 
 			lines.Append( "\n\t{");
 			lines.Append($"\n\t\tprivate Bogus.Faker<{entityName}> _faker;");
-			lines.Append($"\n\t\tpublic {entityName}Faker()");
+			lines.Append($"\n\t\tpublic {entityName}Faker(IManageDatabase databaseManager)");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\tvar random = new Random();");
 			lines.Append($"\n\t\t\tint randomNumber = random.Next();");
@@ -266,11 +269,11 @@ namespace brashcli.Process
 
 			if (parent != null)
 			{
-				_fakerStatements.Add($"var parentFaker = new {parent.Name}Faker();");
+				_fakerStatements.Add($"var parentFaker = new {parent.Name}Faker(databaseManager);");
 				_fakerStatements.Add($"var parent = parentFaker.GetOne();");
-				_fakerStatements.Add($"// add repo");
-				_fakerStatements.Add($"// add parent");
-				_fakerStatements.Add($"// fetch parent for id");
+				_fakerStatements.Add($"var parentRepository = new {parent.Name}Repository(databaseManager, new {parent.Name}RepositorySql());");
+				_fakerStatements.Add($"var parentAddResult = parentRepository.Create(parent);");
+				_fakerStatements.Add($"parent = parentAddResult.Model;");
 				_fakerStatements.Add($"");
 
 				switch(parent.IdPattern)
@@ -386,11 +389,11 @@ namespace brashcli.Process
 
 		private void AddReferenceFields( Reference reference)
 		{
-			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}Faker = new {reference.TableName}Faker();");
+			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}Faker = new {reference.TableName}Faker(databaseManager);");
 			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}Fake = {reference.ColumnName.ToLowerFirstChar()}Faker.GetOne();");
-			_fakerStatements.Add($"// add repo");
-			_fakerStatements.Add($"// add model");
-			_fakerStatements.Add($"// fetch model for id");
+			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}Repository = new {reference.TableName}Repository(databaseManager, new {reference.TableName}RepositorySql());");
+			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}FakeResult = {reference.ColumnName.ToLowerFirstChar()}Repository.Create({reference.ColumnName.ToLowerFirstChar()}Fake);");
+			_fakerStatements.Add($"{reference.ColumnName.ToLowerFirstChar()}Fake = {reference.ColumnName.ToLowerFirstChar()}FakeResult.Model;");
 			_fakerStatements.Add($"");
 
 			string idPattern = _tablePrimaryKeyDataType[reference.TableName];
