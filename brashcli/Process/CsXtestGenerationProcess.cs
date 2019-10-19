@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CommandLine;
 using Newtonsoft.Json;
 using Serilog;
+using Brash.Extension;
 using brashcli.Option;
 using brashcli.Model;
 
@@ -385,8 +386,8 @@ namespace brashcli.Process
 
 		private void AddReferenceFields( Reference reference)
 		{
-			_fakerStatements.Add($"var {reference.ColumnName}Faker = new {reference.TableName}Faker();");
-			_fakerStatements.Add($"var {reference.ColumnName}Fake = {reference.ColumnName}Faker.GetOne();");
+			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}Faker = new {reference.TableName}Faker();");
+			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}Fake = {reference.ColumnName.ToLowerFirstChar()}Faker.GetOne();");
 			_fakerStatements.Add($"// add repo");
 			_fakerStatements.Add($"// add model");
 			_fakerStatements.Add($"// fetch model for id");
@@ -396,15 +397,15 @@ namespace brashcli.Process
 			switch(idPattern)
 			{
 				case Global.IDPATTERN_ASKGUID:
-					_ruleStatements.Add($"m.{reference.ColumnName}GuidRef = {reference.ColumnName}Fake.{reference.TableName}Guid;");
+					_ruleStatements.Add($"m.{reference.ColumnName}GuidRef = {reference.ColumnName.ToLowerFirstChar()}Fake.{reference.TableName}Guid;");
 					break;
 				case Global.IDPATTERN_ASKVERSION:
-					_ruleStatements.Add($"m.{reference.ColumnName}GuidRef = {reference.ColumnName}Fake.{reference.TableName}Guid;");
-					_ruleStatements.Add($"m.{reference.ColumnName}RecordVersionRef = {reference.ColumnName}Fake.{reference.TableName}RecordVersion;");
+					_ruleStatements.Add($"m.{reference.ColumnName}GuidRef = {reference.ColumnName.ToLowerFirstChar()}Fake.{reference.TableName}Guid;");
+					_ruleStatements.Add($"m.{reference.ColumnName}RecordVersionRef = {reference.ColumnName.ToLowerFirstChar()}Fake.{reference.TableName}RecordVersion;");
 					break;
 				case Global.IDPATTERN_ASKID:
 				default:
-					_ruleStatements.Add($"m.{reference.ColumnName}IdRef = {reference.ColumnName}Fake.{reference.TableName}Id;");
+					_ruleStatements.Add($"m.{reference.ColumnName}IdRef = {reference.ColumnName.ToLowerFirstChar()}Fake.{reference.TableName}Id;");
 					break;
 			}
 		}

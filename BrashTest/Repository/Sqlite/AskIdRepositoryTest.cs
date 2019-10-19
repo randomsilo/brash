@@ -44,12 +44,12 @@ namespace BrashTest.Repository.Sqlite
             var personRepoSql = new PersonRepositorySql();
             Assert.NotNull(personRepoSql);
 
-            IManageDatabase databaseManager = new DatabaseManager(databaseContext, personRepoSql);
+            IManageDatabase databaseManager = new DatabaseManager(databaseContext);
             Assert.NotNull(databaseManager);
 
             databaseManager.CreateDatabase();
 
-            var personRepo = new PersonRepository(databaseManager);
+            var personRepo = new PersonRepository(databaseManager, personRepoSql);
             Assert.NotNull(personRepo); 
         }
 
@@ -82,12 +82,12 @@ namespace BrashTest.Repository.Sqlite
             var personRepoSql = new PersonRepositorySql();
             Assert.NotNull(personRepoSql);
 
-            IManageDatabase databaseManager = new DatabaseManager(databaseContext, personRepoSql);
+            IManageDatabase databaseManager = new DatabaseManager(databaseContext);
             Assert.NotNull(databaseManager);
 
             databaseManager.CreateDatabase();
 
-            var personRepo = new PersonRepository(databaseManager);
+            var personRepo = new PersonRepository(databaseManager, personRepoSql);
             Assert.NotNull(personRepo);
 
             ActionResult<BrashTest.Mock.Model.Person> result = null;
@@ -134,12 +134,12 @@ namespace BrashTest.Repository.Sqlite
             var personRepoSql = new PersonRepositorySql();
             Assert.NotNull(personRepoSql);
 
-            IManageDatabase databaseManager = new DatabaseManager(databaseContext, personRepoSql);
+            IManageDatabase databaseManager = new DatabaseManager(databaseContext);
             Assert.NotNull(databaseManager);
 
             databaseManager.CreateDatabase();
 
-            var personRepo = new PersonRepository(databaseManager);
+            var personRepo = new PersonRepository(databaseManager, personRepoSql);
             Assert.NotNull(personRepo);
 
             ActionResult<BrashTest.Mock.Model.Person> result = null;

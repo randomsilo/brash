@@ -11,9 +11,11 @@ namespace Brash.Infrastructure.Sqlite
     public class AskIdRepository<T> : IAskIdRepository<T> where T : IAskId
     {
         public IManageDatabase DatabaseManager { get; private set; }
-        public AskIdRepository(IManageDatabase databaseManager)
+        public AAskIdRepositorySql RepositorySql { get; private set; }
+        public AskIdRepository(IManageDatabase databaseManager, AAskIdRepositorySql askIdRepositorySql)
         {
             DatabaseManager = databaseManager;
+            RepositorySql = askIdRepositorySql;
         }
 
         public SQLiteConnection GetDatabaseConnection()
@@ -191,7 +193,7 @@ namespace Brash.Infrastructure.Sqlite
             using (var connection = GetDatabaseConnection())
             {
                 connection.Open();
-                id = connection.Query<int>(DatabaseManager.RepositorySql.GetCreateStatement(), model).First();
+                id = connection.Query<int>(RepositorySql.GetCreateStatement(), model).First();
             }
 
             return id;
@@ -204,7 +206,7 @@ namespace Brash.Infrastructure.Sqlite
             using (var connection = GetDatabaseConnection())
             {
                 connection.Open();
-                rows = connection.Execute(DatabaseManager.RepositorySql.GetUpdateStatement(), model);
+                rows = connection.Execute(RepositorySql.GetUpdateStatement(), model);
             }
 
             return rows;
@@ -217,7 +219,7 @@ namespace Brash.Infrastructure.Sqlite
             using (var connection = GetDatabaseConnection())
             {
                 connection.Open();
-                rows = connection.Execute(DatabaseManager.RepositorySql.GetDeleteStatement(), model);
+                rows = connection.Execute(RepositorySql.GetDeleteStatement(), model);
             }
 
             return rows;
@@ -230,7 +232,7 @@ namespace Brash.Infrastructure.Sqlite
             using (var connection = GetDatabaseConnection())
             {
                 connection.Open();
-                models = connection.Query<T>(DatabaseManager.RepositorySql.GetFetchStatement(), model);
+                models = connection.Query<T>(RepositorySql.GetFetchStatement(), model);
             }
 
             return models;

@@ -7,12 +7,10 @@ namespace Brash.Infrastructure.Sqlite
 {
     public class DatabaseManager : IManageDatabase
     {
-        public AAskIdRepositorySql RepositorySql { get; private set; }
         public IDatabaseContext DatabaseContext { get; private set; }
-        public DatabaseManager(IDatabaseContext databaseContext, AAskIdRepositorySql repositorySql)
+        public DatabaseManager(IDatabaseContext databaseContext)
         {
             DatabaseContext = databaseContext;
-            RepositorySql = repositorySql;
         }
 
         public void CreateDatabase()

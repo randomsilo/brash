@@ -12,7 +12,7 @@ namespace BrashTest.Mock.Repository
 {
     public class PersonRepository : AskIdRepository<Person>
     {
-        public PersonRepository(IManageDatabase databaseManager) : base(databaseManager)
+        public PersonRepository(IManageDatabase databaseManager, AAskIdRepositorySql repositorySql) : base(databaseManager, repositorySql)
         {
 
         }
