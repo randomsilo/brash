@@ -20,6 +20,7 @@ namespace brashcli.Process
 		private string _pathProject;
 		private string _pathFakerDirectory;
 		private string _pathRepositoryTestDirectory;
+		private string _pathServiceTestDirectory;
 		private DomainStructure _domainStructure;
 		private Dictionary<string,string> _tablePrimaryKeyDataType = new Dictionary<string, string>();
 		private List<string> _ruleStatements = new List<string>();
@@ -68,6 +69,9 @@ namespace brashcli.Process
 
 			_pathRepositoryTestDirectory = System.IO.Path.Combine(_pathProject, directory, "Sqlite/Repository");
 			System.IO.Directory.CreateDirectory(_pathRepositoryTestDirectory);
+
+			_pathServiceTestDirectory = System.IO.Path.Combine(_pathProject, directory, "Sqlite/Service");
+			System.IO.Directory.CreateDirectory(_pathServiceTestDirectory);	
         }
 
         private void ReadDataJsonFile()
@@ -95,6 +99,7 @@ namespace brashcli.Process
 
 			MakeFakerFileCs(parent, entry);
 			MakeRepoTestFileCs(parent, entry);
+			MakeServiceTestFileCs(parent, entry);
 			
 			if (entry.Children != null && entry.Children.Count > 0)
 			{
@@ -213,7 +218,7 @@ namespace brashcli.Process
 			lines.Append($"\n\t\t\t// logger");
 			lines.Append( "\n\t\t\tILogger logger = GetLogger($\"{outputPath}/{MethodBase.GetCurrentMethod()}.log\");");
 			lines.Append($"\n\t\t\t");
-			
+
 			lines.Append($"\n\t\t\t// database setup");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// - context");
@@ -311,6 +316,223 @@ namespace brashcli.Process
 		}
 
 		public string TplCsRepoXtestAskVersion(
+			string domain
+			, string entityName
+			, string idPattern
+			, string projectPath
+			)
+        {
+            StringBuilder lines = new StringBuilder();
+
+			throw new NotImplementedException();
+
+			//return lines.ToString();
+		}
+
+
+		public string MakeServiceTestFilePath(Structure entry)
+		{
+			return System.IO.Path.Combine(_pathServiceTestDirectory, entry.Name + "ServiceTest.cs");
+		}
+
+		private void MakeServiceTestFileCs(Structure parent, Structure entry)
+		{
+			string fileNamePath = MakeServiceTestFilePath(entry);
+			StringBuilder lines = new StringBuilder();
+
+			lines.Append( TplCsServiceXtest(
+				_domainStructure.Domain
+				, entry.Name
+				, entry.IdPattern ?? "AskId"
+				, _pathProject
+			));
+
+			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
+		}
+
+		public string TplCsServiceXtest(
+			string domain
+			, string entityName
+			, string idPattern
+			, string basePath
+			)
+        {
+            string template = null;
+
+			switch(idPattern)
+			{
+				case Global.IDPATTERN_ASKGUID:
+					template = TplCsServiceXtestAskGuid(domain, entityName, idPattern, basePath);
+					break;
+				case Global.IDPATTERN_ASKVERSION:
+					template = TplCsServiceXtestAskVersion(domain, entityName, idPattern, basePath);
+					break;
+				case Global.IDPATTERN_ASKID:
+				default:
+					template = TplCsServiceXtestAskId(domain, entityName, idPattern, basePath);
+					break;
+			}
+
+            return template;
+        }
+
+		public string TplCsServiceXtestAskId(
+			string domain
+			, string entityName
+			, string idPattern
+			, string projectPath
+			)
+        {
+            StringBuilder lines = new StringBuilder();
+
+			lines.Append($"\nusing System.Collections.Generic;");
+			lines.Append($"\nusing System.Reflection;");
+			lines.Append($"\nusing Xunit;");
+			lines.Append($"\nusing Serilog;");
+			lines.Append($"\nusing Brash.Infrastructure;");
+			lines.Append($"\nusing Brash.Infrastructure.Sqlite;");
+			lines.Append($"\nusing {domain}.Domain.Model;");
+			lines.Append($"\nusing {domain}.Infrastructure.Sqlite.Repository;");
+			lines.Append($"\nusing {domain}.Infrastructure.Sqlite.RepositorySql;");
+			lines.Append($"\nusing {domain}.Infrastructure.Sqlite.Service;");
+			lines.Append($"\nusing {domain}.Infrastructure.Test.Sqlite.Faker;");
+			lines.Append($"\n");
+			lines.Append($"\nnamespace {domain}.Infrastructure.Test.Sqlite.Service");
+			lines.Append( "\n{");
+			lines.Append($"\n\tpublic class {entityName}ServiceTest");
+			lines.Append( "\n\t{");
+			lines.Append($"\n\t\tpublic string GetDatabase(string path, MethodBase methodBase)");
+			lines.Append( "\n\t\t{");
+			lines.Append( "\n\t\t\tstring dbName = $\"{methodBase.ReflectedType.Name}_{methodBase.Name}\";"); 
+			lines.Append( "\n\t\t\tstring databaseFile = $\"{path}/{dbName}.sqlite\";");
+			lines.Append($"\n\t\t\tSystem.IO.File.Delete(databaseFile);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\treturn databaseFile;");
+			lines.Append( "\n\t\t}");
+			lines.Append($"\n");
+			lines.Append($"\n\t\tpublic static ILogger GetLogger(string filename)");
+			lines.Append( "\n\t\t{");
+			lines.Append( "\n\t\t\treturn new LoggerConfiguration()");
+            lines.Append( "\n\t\t\t\t.MinimumLevel.Verbose()");
+            lines.Append( "\n\t\t\t\t.WriteTo.File($\"{filename}\", rollingInterval: RollingInterval.Day)");
+            lines.Append( "\n\t\t\t\t.CreateLogger();");
+			lines.Append( "\n\t\t}");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t[Fact]");
+			lines.Append($"\n\t\tpublic void CreateUpdateDeleteFetch()");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\t// file system");
+			lines.Append($"\n\t\t\tvar path = \"{projectPath}\";");
+			lines.Append($"\n\t\t\tvar project = \"{domain}\";");
+			lines.Append( "\n\t\t\tvar outputPath = $\"{path}/{project}.Infrastructure.Test/TestOutput/\";");
+			lines.Append( "\n\t\t\tvar databaseFile = GetDatabase(outputPath, MethodBase.GetCurrentMethod());");
+			lines.Append($"\n\t\t\t");
+
+			lines.Append($"\n\t\t\t// logger");
+			lines.Append( "\n\t\t\tILogger logger = GetLogger($\"{outputPath}/{MethodBase.GetCurrentMethod()}.log\");");
+			lines.Append($"\n\t\t\t");
+
+			lines.Append($"\n\t\t\t// database setup");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - context");
+			lines.Append($"\n\t\t\tIDatabaseContext databaseContext = new DatabaseContext(");
+			lines.Append( "\n\t\t\t\t$\"Data Source={databaseFile}\" ");
+			lines.Append($"\n\t\t\t\t, \"TestDb\"");
+			lines.Append($"\n\t\t\t\t, \"TestSchema\"");
+			lines.Append( "\n\t\t\t\t, $\"{path}/sql/sqlite/ALL.sql\"");
+			lines.Append($"\n\t\t\t);");
+			lines.Append($"\n\t\t\tAssert.NotNull(databaseContext);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - manager");
+			lines.Append($"\n\t\t\tIManageDatabase databaseManager = new DatabaseManager(databaseContext);");
+			lines.Append($"\n\t\t\tAssert.NotNull(databaseManager);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - create tables");
+			lines.Append($"\n\t\t\tdatabaseManager.CreateDatabase();");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - repository");
+			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}Repository = new {entityName}Repository(databaseManager, new {entityName}RepositorySql(), logger);");
+			lines.Append($"\n\t\t\tAssert.NotNull({entityName.ToLowerFirstChar()}Repository);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - service");
+			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}Service = new {entityName}Service({entityName.ToLowerFirstChar()}Repository, logger);");
+			lines.Append($"\n\t\t\tAssert.NotNull({entityName.ToLowerFirstChar()}Service);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// faker");
+			lines.Append($"\n\t\t\tServiceResult<{entityName}> serviceResult = null;");
+			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}Faker = new {entityName}Faker(databaseManager, logger);");
+			lines.Append($"\n\t\t\tAssert.NotNull({entityName.ToLowerFirstChar()}Faker);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// create");
+			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}CreateModel = {entityName.ToLowerFirstChar()}Faker.GetOne();");
+			lines.Append($"\n\t\t\tserviceResult = {entityName.ToLowerFirstChar()}Service.Create({entityName.ToLowerFirstChar()}CreateModel);");
+			lines.Append($"\n\t\t\tAssert.False(serviceResult.HasError());");
+			lines.Append($"\n\t\t\tAssert.True(serviceResult.WorkResult.Model.{entityName}Id > 0);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// use model with id");
+			lines.Append($"\n\t\t\t{entityName.ToLowerFirstChar()}CreateModel = serviceResult.WorkResult.Model;");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// update");
+			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}UpdateModel = {entityName.ToLowerFirstChar()}Faker.GetOne();");
+			lines.Append($"\n\t\t\t{entityName.ToLowerFirstChar()}UpdateModel.{entityName}Id = {entityName.ToLowerFirstChar()}CreateModel.{entityName}Id;");
+			lines.Append($"\n\t\t\tserviceResult = {entityName.ToLowerFirstChar()}Service.Update({entityName.ToLowerFirstChar()}UpdateModel);");
+			lines.Append($"\n\t\t\tAssert.False(serviceResult.HasError());");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// delete");
+			lines.Append($"\n\t\t\tserviceResult = {entityName.ToLowerFirstChar()}Service.Delete({entityName.ToLowerFirstChar()}CreateModel);");
+			lines.Append($"\n\t\t\tAssert.False(serviceResult.HasError());");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// fetch"); 
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - make fakes");
+			lines.Append($"\n\t\t\tvar fakes = {entityName.ToLowerFirstChar()}Faker.GetMany(10);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - add fakes to database");
+			lines.Append($"\n\t\t\tList<int?> ids = new List<int?>();");
+			lines.Append($"\n\t\t\tforeach (var f in fakes)");
+			lines.Append( "\n\t\t\t{");
+			lines.Append($"\n\t\t\t\tserviceResult = {entityName.ToLowerFirstChar()}Service.Create(f);");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t\tAssert.False(serviceResult.HasError());");
+			lines.Append($"\n\t\t\t\tAssert.True(serviceResult.WorkResult.Model.{entityName}Id >= 0);");
+			lines.Append($"\n\t\t\t\tids.Add(serviceResult.WorkResult.Model.{entityName}Id);");
+			lines.Append( "\n\t\t\t}");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t// - get fakes from database");
+			lines.Append($"\n\t\t\tforeach(var id in ids)");
+			lines.Append( "\n\t\t\t{");
+			lines.Append($"\n\t\t\t\tvar model = new {entityName}()"); 
+			lines.Append( "\n\t\t\t\t{");
+			lines.Append($"\n\t\t\t\t\t{entityName}Id = id");
+			lines.Append( "\n\t\t\t\t};");
+			lines.Append($"\n");
+			lines.Append($"\n\t\t\t\tserviceResult = {entityName.ToLowerFirstChar()}Service.Fetch(model);");
+			lines.Append($"\n\t\t\t\tAssert.False(serviceResult.HasError());");
+			lines.Append($"\n\t\t\t\tAssert.True(serviceResult.WorkResult.Model.{entityName}Id >= 0);");
+			lines.Append( "\n\t\t\t}");
+			lines.Append( "\n\t\t}");
+			lines.Append($"\n");
+			lines.Append( "\n\t}");
+			lines.Append( "\n}");
+
+			return lines.ToString();
+		}
+
+		public string TplCsServiceXtestAskGuid(
+			string domain
+			, string entityName
+			, string idPattern
+			, string projectPath
+			)
+        {
+            StringBuilder lines = new StringBuilder();
+
+			throw new NotImplementedException();
+
+			//return lines.ToString();
+		}
+
+		public string TplCsServiceXtestAskVersion(
 			string domain
 			, string entityName
 			, string idPattern

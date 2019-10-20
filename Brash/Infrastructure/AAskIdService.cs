@@ -125,7 +125,6 @@ namespace Brash.Infrastructure
 
         public virtual ActionResult<T> CreatePreWork(T model)
         {
-            Console.WriteLine("AAskIdService.CreatePreWork");
             return new ActionResult<T>() {
                 Model = model,
                 Status = ActionStatus.SUCCESS,
