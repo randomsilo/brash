@@ -1,4 +1,5 @@
 using System;
+using Serilog;
 using Brash.Model;
 
 namespace Brash.Infrastructure
@@ -6,10 +7,12 @@ namespace Brash.Infrastructure
     public abstract class AAskIdService<T> : IAskIdService<T> where T : IAskId
     {
         protected IAskIdRepository<T> Repository { get; private set; }
+        protected ILogger Logger { get; set; }
         
-        public AAskIdService(IAskIdRepository<T> repository)
+        public AAskIdService(IAskIdRepository<T> repository, ILogger logger)
         {
             Repository = repository;
+            Logger = logger;
         }
 
         public ServiceResult<T> Create(T model)
@@ -26,6 +29,14 @@ namespace Brash.Infrastructure
                 {
                     serviceResult.PostWorkResult = CreatePostWork(serviceResult.WorkResult.Model);
                 }
+                else
+                {
+                    Logger.Error(serviceResult.WorkResult.Message);
+                }
+            }
+            else
+            {
+                Logger.Error(serviceResult.PreWorkResult.Message);
             }
 
             return serviceResult;
@@ -45,6 +56,14 @@ namespace Brash.Infrastructure
                 {
                     serviceResult.PostWorkResult = FetchPostWork(serviceResult.WorkResult.Model);
                 }
+                else
+                {
+                    Logger.Error(serviceResult.WorkResult.Message);
+                }
+            }
+            else
+            {
+                Logger.Error(serviceResult.PreWorkResult.Message);
             }
 
             return serviceResult;
@@ -64,6 +83,14 @@ namespace Brash.Infrastructure
                 {
                     serviceResult.PostWorkResult = UpdatePostWork(serviceResult.WorkResult.Model);
                 }
+                else
+                {
+                    Logger.Error(serviceResult.WorkResult.Message);
+                }
+            }
+            else
+            {
+                Logger.Error(serviceResult.PreWorkResult.Message);
             }
 
             return serviceResult;
@@ -83,6 +110,14 @@ namespace Brash.Infrastructure
                 {
                     serviceResult.PostWorkResult = DeletePostWork(serviceResult.WorkResult.Model);
                 }
+                else
+                {
+                    Logger.Error(serviceResult.WorkResult.Message);
+                }
+            }
+            else
+            {
+                Logger.Error(serviceResult.PreWorkResult.Message);
             }
 
             return serviceResult;

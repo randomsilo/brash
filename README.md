@@ -1,8 +1,6 @@
 # brash
 
 Brash is a tool for quickly building an API project.
-It is evolving to include other boilerplate code including markup.
-The code is increase productivity.
 
 ## How to Use
 
@@ -31,14 +29,11 @@ dotnet run sqlite-gen --file /shop/randomsilo/MyProject/structure.json
 # generate domain classes (cs is the c# prefix)
 dotnet run cs-domain --file /shop/randomsilo/MyProject/structure.json
 
-# generate sqlite repository classes
+# generate sqlite repository and service classes
 dotnet run cs-repo-sqlite --file /shop/randomsilo/MyProject/structure.json
 
 # generate xunit classes
 dotnet run cs-xtest-sqlite --file /shop/randomsilo/MyProject/structure.json
-
-# generate service classes
-dotnet run cs-service-sqlite --file /shop/randomsilo/MyProject/structure.json
 
 # generate api classes
 dotnet run cs-api-sqlite --file /shop/randomsilo/MyProject/structure.json

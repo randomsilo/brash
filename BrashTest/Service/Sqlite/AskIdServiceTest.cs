@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Xunit;
 using Bogus;
+using Serilog;
 using Brash.Infrastructure;
 using Brash.Infrastructure.Sqlite;
 using BrashTest.Mock.Model;
@@ -16,6 +17,13 @@ namespace BrashTest.Repository.Sqlite
 {
     public class AskIdServiceTest
     {
+        private static ILogger GetLogger(string filename)
+        {
+            return new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.File($"{filename}", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+        }
         
         [Fact]
         public void ServiceCreateModel()
@@ -24,7 +32,10 @@ namespace BrashTest.Repository.Sqlite
             string dbName = $"{methodBase.ReflectedType.Name}_{methodBase.Name}"; 
             string path = "/shop/randomsilo/brash/BrashTest/sql/";
             string databaseFile = $"{path}/{dbName}.sqlite";
+            string logFile = $"{path}/{dbName}.log";
             System.IO.File.Delete(databaseFile);
+
+            ILogger logger = GetLogger(logFile);
 
 
             var person = new BrashTest.Mock.Model.Person()
@@ -51,10 +62,10 @@ namespace BrashTest.Repository.Sqlite
 
             databaseManager.CreateDatabase();
 
-            var personRepo = new PersonRepository(databaseManager, personRepoSql);
+            var personRepo = new PersonRepository(databaseManager, personRepoSql, logger);
             Assert.NotNull(personRepo);
 
-            var personService = new PersonService(personRepo);
+            var personService = new PersonService(personRepo, logger);
             Assert.NotNull(personService);
 
             // valid lastname

@@ -171,6 +171,7 @@ namespace brashcli.Process
 			lines.Append($"\nusing System.Collections.Generic;");
 			lines.Append($"\nusing System.Reflection;");
 			lines.Append($"\nusing Xunit;");
+			lines.Append($"\nusing Serilog;");
 			lines.Append($"\nusing Brash.Infrastructure;");
 			lines.Append($"\nusing Brash.Infrastructure.Sqlite;");
 			lines.Append($"\nusing {domain}.Domain.Model;");
@@ -191,14 +192,28 @@ namespace brashcli.Process
 			lines.Append($"\n\t\t\treturn databaseFile;");
 			lines.Append( "\n\t\t}");
 			lines.Append($"\n");
+			lines.Append($"\n\t\tpublic static ILogger GetLogger(string filename)");
+			lines.Append( "\n\t\t{");
+			lines.Append( "\n\t\t\treturn new LoggerConfiguration()");
+            lines.Append( "\n\t\t\t\t.MinimumLevel.Verbose()");
+            lines.Append( "\n\t\t\t\t.WriteTo.File($\"{filename}\", rollingInterval: RollingInterval.Day)");
+            lines.Append( "\n\t\t\t\t.CreateLogger();");
+			lines.Append( "\n\t\t}");
+			lines.Append($"\n");
 			lines.Append($"\n\t\t[Fact]");
 			lines.Append($"\n\t\tpublic void CreateUpdateDeleteFetch()");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\t// file system");
 			lines.Append($"\n\t\t\tvar path = \"{projectPath}\";");
 			lines.Append($"\n\t\t\tvar project = \"{domain}\";");
-			lines.Append( "\n\t\t\tvar databaseFile = GetDatabase($\"{path}/{project}.Infrastructure.Test/TestOutput/\", MethodBase.GetCurrentMethod());");
+			lines.Append( "\n\t\t\tvar outputPath = $\"{path}/{project}.Infrastructure.Test/TestOutput/\";");
+			lines.Append( "\n\t\t\tvar databaseFile = GetDatabase(outputPath, MethodBase.GetCurrentMethod());");
 			lines.Append($"\n\t\t\t");
+
+			lines.Append($"\n\t\t\t// logger");
+			lines.Append( "\n\t\t\tILogger logger = GetLogger($\"{outputPath}/{MethodBase.GetCurrentMethod()}.log\");");
+			lines.Append($"\n\t\t\t");
+			
 			lines.Append($"\n\t\t\t// database setup");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// - context");
@@ -218,12 +233,12 @@ namespace brashcli.Process
 			lines.Append($"\n\t\t\tdatabaseManager.CreateDatabase();");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// - repository");
-			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}Repository = new {entityName}Repository(databaseManager, new {entityName}RepositorySql());");
+			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}Repository = new {entityName}Repository(databaseManager, new {entityName}RepositorySql(), logger);");
 			lines.Append($"\n\t\t\tAssert.NotNull({entityName.ToLowerFirstChar()}Repository);");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// faker");
 			lines.Append($"\n\t\t\tActionResult<{entityName}> result = null;");
-			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}Faker = new {entityName}Faker(databaseManager);");
+			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}Faker = new {entityName}Faker(databaseManager, logger);");
 			lines.Append($"\n\t\t\tAssert.NotNull({entityName.ToLowerFirstChar()}Faker);");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// create");
@@ -341,6 +356,7 @@ namespace brashcli.Process
 			lines.Append($"using System;");
 			lines.Append($"\nusing System.Collections.Generic;");
 			lines.Append($"\nusing System.Linq;");
+			lines.Append($"\nusing Serilog;");
 			lines.Append($"\nusing Brash.Infrastructure;");
 			lines.Append($"\nusing {domain}.Domain.Model;");
 			lines.Append($"\nusing {domain}.Infrastructure.Sqlite.Repository;");
@@ -351,7 +367,7 @@ namespace brashcli.Process
 			lines.Append($"\n\tpublic class {entityName}Faker"); 
 			lines.Append( "\n\t{");
 			lines.Append($"\n\t\tprivate Bogus.Faker<{entityName}> _faker;");
-			lines.Append($"\n\t\tpublic {entityName}Faker(IManageDatabase databaseManager)");
+			lines.Append($"\n\t\tpublic {entityName}Faker(IManageDatabase databaseManager, ILogger logger)");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\tvar random = new Random();");
 			lines.Append($"\n\t\t\tint randomNumber = random.Next();");
@@ -428,9 +444,9 @@ namespace brashcli.Process
 
 			if (parent != null)
 			{
-				_fakerStatements.Add($"var parentFaker = new {parent.Name}Faker(databaseManager);");
+				_fakerStatements.Add($"var parentFaker = new {parent.Name}Faker(databaseManager, logger);");
 				_fakerStatements.Add($"var parent = parentFaker.GetOne();");
-				_fakerStatements.Add($"var parentRepository = new {parent.Name}Repository(databaseManager, new {parent.Name}RepositorySql());");
+				_fakerStatements.Add($"var parentRepository = new {parent.Name}Repository(databaseManager, new {parent.Name}RepositorySql(), logger);");
 				_fakerStatements.Add($"var parentAddResult = parentRepository.Create(parent);");
 				_fakerStatements.Add($"parent = parentAddResult.Model;");
 				_fakerStatements.Add($"");
@@ -549,9 +565,9 @@ namespace brashcli.Process
 
 		private void AddReferenceFields( Reference reference)
 		{
-			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}Faker = new {reference.TableName}Faker(databaseManager);");
+			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}Faker = new {reference.TableName}Faker(databaseManager, logger);");
 			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}Fake = {reference.ColumnName.ToLowerFirstChar()}Faker.GetOne();");
-			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}Repository = new {reference.TableName}Repository(databaseManager, new {reference.TableName}RepositorySql());");
+			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}Repository = new {reference.TableName}Repository(databaseManager, new {reference.TableName}RepositorySql(), logger);");
 			_fakerStatements.Add($"var {reference.ColumnName.ToLowerFirstChar()}FakeResult = {reference.ColumnName.ToLowerFirstChar()}Repository.Create({reference.ColumnName.ToLowerFirstChar()}Fake);");
 			_fakerStatements.Add($"{reference.ColumnName.ToLowerFirstChar()}Fake = {reference.ColumnName.ToLowerFirstChar()}FakeResult.Model;");
 			_fakerStatements.Add($"");

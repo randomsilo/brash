@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Xunit;
 using Bogus;
+using Serilog;
 using Brash.Infrastructure;
 using Brash.Infrastructure.Sqlite;
 using BrashTest.Mock.Model;
@@ -15,6 +16,14 @@ namespace BrashTest.Repository.Sqlite
 {
     public class AskIdRepositoryTest
     {
+        private static ILogger GetLogger(string filename)
+        {
+            return new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.File($"{filename}", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+        }
+
         [Fact]
         public void ModelInit()
         {
@@ -28,6 +37,9 @@ namespace BrashTest.Repository.Sqlite
             string path = "/shop/randomsilo/brash/BrashTest/sql/";
             string databaseFile = $"{path}/MockDb.sqlite";
             System.IO.File.Delete(databaseFile);
+
+            string logFile = $"{path}/MockDb.log";
+            ILogger logger = GetLogger(logFile);
 
 
             var person = new BrashTest.Mock.Model.Person();
@@ -49,7 +61,7 @@ namespace BrashTest.Repository.Sqlite
 
             databaseManager.CreateDatabase();
 
-            var personRepo = new PersonRepository(databaseManager, personRepoSql);
+            var personRepo = new PersonRepository(databaseManager, personRepoSql, logger);
             Assert.NotNull(personRepo); 
         }
 
@@ -61,6 +73,9 @@ namespace BrashTest.Repository.Sqlite
             string path = "/shop/randomsilo/brash/BrashTest/sql/";
             string databaseFile = $"{path}/{dbName}.sqlite";
             System.IO.File.Delete(databaseFile);
+
+            string logFile = $"{path}/{dbName}.log";
+            ILogger logger = GetLogger(logFile);
 
 
             var person = new BrashTest.Mock.Model.Person()
@@ -87,7 +102,7 @@ namespace BrashTest.Repository.Sqlite
 
             databaseManager.CreateDatabase();
 
-            var personRepo = new PersonRepository(databaseManager, personRepoSql);
+            var personRepo = new PersonRepository(databaseManager, personRepoSql, logger);
             Assert.NotNull(personRepo);
 
             ActionResult<BrashTest.Mock.Model.Person> result = null;
@@ -114,6 +129,9 @@ namespace BrashTest.Repository.Sqlite
             string databaseFile = $"{path}/{dbName}.sqlite";
             System.IO.File.Delete(databaseFile);
 
+            string logFile = $"{path}/{dbName}.log";
+            ILogger logger = GetLogger(logFile);
+
 
             var person = new BrashTest.Mock.Model.Person()
             {
@@ -139,7 +157,7 @@ namespace BrashTest.Repository.Sqlite
 
             databaseManager.CreateDatabase();
 
-            var personRepo = new PersonRepository(databaseManager, personRepoSql);
+            var personRepo = new PersonRepository(databaseManager, personRepoSql, logger);
             Assert.NotNull(personRepo);
 
             ActionResult<BrashTest.Mock.Model.Person> result = null;

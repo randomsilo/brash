@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
+using Serilog;
 using System.Data.SQLite;
 using Dapper;
 using Brash.Model;
@@ -12,10 +13,12 @@ namespace Brash.Infrastructure.Sqlite
     {
         public IManageDatabase DatabaseManager { get; private set; }
         public AAskIdRepositorySql RepositorySql { get; private set; }
-        public AskIdRepository(IManageDatabase databaseManager, AAskIdRepositorySql askIdRepositorySql)
+        public ILogger Logger { get; private set; }
+        public AskIdRepository(IManageDatabase databaseManager, AAskIdRepositorySql askIdRepositorySql, ILogger logger)
         {
             DatabaseManager = databaseManager;
             RepositorySql = askIdRepositorySql;
+            Logger = logger;
         }
 
         public SQLiteConnection GetDatabaseConnection()

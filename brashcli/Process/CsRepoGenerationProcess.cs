@@ -19,6 +19,7 @@ namespace brashcli.Process
 		private string _pathProject;
 		private string _pathRepositoryDirectory;
 		private string _pathRepositorySqlDirectory;
+		private string _pathServiceDirectory;
 		private DomainStructure _domainStructure;
 		private Dictionary<string,string> _tablePrimaryKeyDataType = new Dictionary<string, string>();
 		private List<string> _columns = new List<string>();
@@ -66,6 +67,9 @@ namespace brashcli.Process
 
 			_pathRepositorySqlDirectory = System.IO.Path.Combine(_pathProject, directory, "Sqlite/RepositorySql");
 			System.IO.Directory.CreateDirectory(_pathRepositorySqlDirectory);
+
+			_pathServiceDirectory = System.IO.Path.Combine(_pathProject, directory, "Sqlite/Service");
+			System.IO.Directory.CreateDirectory(_pathServiceDirectory);
         }
 
         private void ReadDataJsonFile()
@@ -93,6 +97,7 @@ namespace brashcli.Process
 
 			MakeRepoFileCs(parent, entry);
 			MakeRepoSqlFileCs(parent, entry);
+			MakeServiceFileCs(parent, entry);
 			
 			if (entry.Children != null && entry.Children.Count > 0)
 			{
@@ -138,15 +143,61 @@ namespace brashcli.Process
         {
             StringBuilder lines = new StringBuilder();
 
-			lines.Append($"\nusing Brash.Infrastructure;");
+			lines.Append(  $"using Brash.Infrastructure;");
 			lines.Append($"\nusing Brash.Infrastructure.Sqlite;");
+			lines.Append($"\nusing Serilog;");
 			lines.Append($"\nusing {domain}.Domain.Model;");
 			lines.Append($"\n");
 			lines.Append($"\nnamespace {domain}.Infrastructure.Sqlite.Repository");
 			lines.Append( "\n{");
 			lines.Append($"\n\tpublic class {entityName}Repository : {idPattern}Repository<{entityName}>");
 			lines.Append( "\n\t{");
-			lines.Append($"\n\t\tpublic {entityName}Repository(IManageDatabase databaseManager, AAskIdRepositorySql repositorySql) : base(databaseManager, repositorySql)");
+			lines.Append($"\n\t\tpublic {entityName}Repository(IManageDatabase databaseManager, AAskIdRepositorySql repositorySql, ILogger logger) : base(databaseManager, repositorySql, logger)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\t");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t}");
+			lines.Append( "\n}");
+
+            return lines.ToString();
+        }
+
+		public string MakeServiceFilePath(Structure entry)
+		{
+			return System.IO.Path.Combine(_pathServiceDirectory, entry.Name + "Service.cs");
+		}
+
+		private void MakeServiceFileCs(Structure parent, Structure entry)
+		{
+			string fileNamePath = MakeServiceFilePath(entry);
+			StringBuilder lines = new StringBuilder();
+
+			lines.Append( TplCsService(
+				_domainStructure.Domain
+				, entry.Name
+				, entry.IdPattern ?? "AskId"
+			));
+
+			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
+		}
+
+		public string TplCsService(
+			string domain
+			, string entityName
+			, string idPattern
+			)
+        {
+            StringBuilder lines = new StringBuilder();
+
+			lines.Append($"\nusing Brash.Infrastructure;");
+			lines.Append($"\nusing Serilog;");
+			lines.Append($"\nusing {domain}.Domain.Model;");
+			lines.Append($"\n");
+			lines.Append($"\nnamespace {domain}.Infrastructure.Sqlite.Service");
+			lines.Append( "\n{");
+			lines.Append($"\n\tpublic class {entityName}Service : A{idPattern}Service<{entityName}>");
+			lines.Append( "\n\t{");
+			lines.Append($"\n\t\tpublic {entityName}Service(I{idPattern}Repository<{entityName}> repository, ILogger logger) : base(repository, logger)");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\t");
 			lines.Append( "\n\t\t}");
