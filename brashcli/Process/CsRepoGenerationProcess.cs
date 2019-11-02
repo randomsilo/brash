@@ -228,6 +228,7 @@ namespace brashcli.Process
 				, BuildFetchStatement(parent, entity)
 				, BuildUpdateStatement(parent, entity)
 				, BuildDeleteStatement(parent, entity)
+				, BuildFindStatement(parent, entity)
 			));
 
 			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
@@ -241,6 +242,7 @@ namespace brashcli.Process
 			, string fetchStatement
 			, string updateStatement
 			, string deleteStatement
+			, string findStatement
 			)
         {
             StringBuilder lines = new StringBuilder();
@@ -273,6 +275,12 @@ namespace brashcli.Process
 			lines.Append($"\n\t\t\t{deleteStatement}");
 			lines.Append($"\n\t\t\t\";");
 			lines.Append($"\n");
+
+			lines.Append($"\n\t\t\t_sql[{idPattern}RepositorySqlTypes.FIND] = @\"");
+			lines.Append($"\n\t\t\t{findStatement}");
+			lines.Append($"\n\t\t\t\";");
+			lines.Append($"\n");
+
 			lines.Append( "\n\t\t}");
 			lines.Append( "\n\t}");
 			lines.Append( "\n}");
@@ -575,6 +583,32 @@ namespace brashcli.Process
 			}
 
 			statement.Append($"\n\t\t\t;");
+
+			return statement.ToString();
+		}
+
+		private string BuildFindStatement(Structure parent, Structure entity)
+		{
+			StringBuilder statement = new StringBuilder();
+			bool addComma = false;
+
+			statement.Append($"SELECT");
+			statement.Append($"\n\t\t\t\t--- Columns");
+
+			addComma = false;
+			foreach( var column in _selectColumns)
+			{
+				statement.Append($"\n\t\t\t\t");
+				if (addComma)
+					statement.Append(", ");
+
+				statement.Append($"{column}");
+				addComma = true;
+			}
+
+			statement.Append($"\n\t\t\tFROM");
+			statement.Append($"\n\t\t\t\t{entity.Name}");
+			statement.Append($"\n\t\t\t");
 
 			return statement.ToString();
 		}

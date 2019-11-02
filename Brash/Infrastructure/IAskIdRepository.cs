@@ -10,5 +10,6 @@ namespace Brash.Infrastructure
         ActionResult<T> Fetch(T model);
         ActionResult<T> Update(T model);
         ActionResult<T> Delete(T model);
+        QueryResult<T> FindWhere(string where);
     }
 }

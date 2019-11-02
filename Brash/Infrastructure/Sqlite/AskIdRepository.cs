@@ -189,6 +189,33 @@ namespace Brash.Infrastructure.Sqlite
             return result;
         }
 
+        public QueryResult<T> FindWhere(string where)
+        {
+            QueryResult<T> result = new QueryResult<T>()
+            {
+                Models = new List<T>()
+                , Message = "init"
+                , Status = QueryStatus.INFORMATION
+            };
+
+            IEnumerable<T> models = PerformFind(where);
+            if (models.Count() > 1)
+            {
+                result.UpdateStatus(QueryStatus.SUCCESS, $"{models.Count()} records found");
+                result.Models = models.ToList();
+            }
+            else if (models.Count() == 0)
+            {
+                result.UpdateStatus(QueryStatus.NO_RECORDS, $"{models.Count()} records found");
+            }
+            else
+            {
+                result.UpdateStatus(QueryStatus.ERROR, $"Query count issue: this should never happen");
+            }
+
+            return result;
+        }
+
         private int? PerformInsert(T model)
         {
             int? id;
@@ -240,5 +267,20 @@ namespace Brash.Infrastructure.Sqlite
 
             return models;
         }
+
+        private IEnumerable<T> PerformFind(string whereClause)
+        {
+            IEnumerable<T> models;
+
+            using (var connection = GetDatabaseConnection())
+            {
+                connection.Open();
+                models = connection.Query<T>($"{RepositorySql.GetFindStatement()} {whereClause}");
+            }
+
+            return models;
+        }
+
+        
     }
 }

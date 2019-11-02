@@ -26,8 +26,6 @@ dotnet add package Serilog.Sinks.Console
 dotnet add package Serilog.Sinks.File
 dotnet add package Newtonsoft.Json
 dotnet add package CommandLineParser
-dotnet add package Handlebars.Net
-
 cd ..
 
 ```
@@ -39,5 +37,22 @@ dotnet new classlib
 dotnet add package System.Data.SQLite
 dotnet add package Dapper
 dotnet add package Serilog
+cd ..
 
+```
+
+
+```bash
+cd BrashTest
+dotnet new xunit
+
+dotnet add package Microsoft.NET.Test.Sdk
+dotnet add package xunit.runner.visualstudio
+dotnet add package System.Data.SQLite
+dotnet add package Dapper
+dotnet add package Serilog
+dotnet add package Serilog.Sinks.Console
+dotnet add package Serilog.Sinks.File
+
+cd ..
 ```

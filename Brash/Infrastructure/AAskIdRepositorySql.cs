@@ -10,6 +10,7 @@ namespace Brash.Infrastructure
         , FETCH
         , UPDATE
         , DELETE
+        , FIND
     }
 
     public abstract class AAskIdRepositorySql
@@ -39,6 +40,11 @@ namespace Brash.Infrastructure
         public string GetDeleteStatement()
         {
             return _sql[AskIdRepositorySqlTypes.DELETE];
+        }
+
+        public string GetFindStatement()
+        {
+            return _sql[AskIdRepositorySqlTypes.FIND];
         }
         
     }

@@ -51,6 +51,16 @@ namespace BrashTest.Mock.RepositorySql
             WHERE
                 PersonId = @PersonId;
             ";
+
+            _sql[AskIdRepositorySqlTypes.FIND] = @"
+            SELECT 
+                PersonId
+                , LastName
+                , FirstName
+                , MiddleName 
+            FROM 
+                Person 
+            ";
         }
     }
 }
