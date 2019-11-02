@@ -75,7 +75,7 @@ PROJECT=" + projectName + @"
 mkdir -p $PROJECT.Api
 mkdir -p $PROJECT.Domain
 mkdir -p $PROJECT.Infrastructure
-mkdir -p $PROJECT.Infrastructure.Test
+mkdir -p $PROJECT.Infrastructure.Test/TestOutput
 
 ## Solution
 dotnet new sln
@@ -138,6 +138,8 @@ dotnet add package Bogus
 dotnet add package Serilog
 dotnet add package Serilog.Sinks.Console
 dotnet add package Serilog.Sinks.File
+dotnet add package Microsoft.NET.Test.Sdk
+dotnet add package xunit.runner.visualstudio
 cd ..
 
 cd $PROJECT.Api

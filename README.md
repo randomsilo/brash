@@ -22,9 +22,9 @@ dotnet run data-init -n MyProject -d /shop/randomsilo/MyProject
 
 # generate sqlite files 
 ## - mysql and sql server are future features
+dotnet run sqlite-gen --file /shop/randomsilo/MyProject/structure.json
 ## - run combine.sh in the sql directory to create a single file for execution
 ##   Add additional files (indexes, data seeding), if necessary
-dotnet run sqlite-gen --file /shop/randomsilo/MyProject/structure.json
 
 # generate domain classes (cs is the c# prefix)
 dotnet run cs-domain --file /shop/randomsilo/MyProject/structure.json
@@ -37,8 +37,6 @@ dotnet run cs-xtest-sqlite --file /shop/randomsilo/MyProject/structure.json
 
 # generate api classes
 dotnet run cs-api-sqlite --file /shop/randomsilo/MyProject/structure.json
-
-
 
 ```
 
