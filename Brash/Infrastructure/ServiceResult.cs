@@ -29,5 +29,27 @@ namespace Brash.Infrastructure
 
             return errorFound;
         }
+
+        public string GetErrorMessage()
+        {
+            string errorMessage = "";
+
+            if (PreWorkResult?.Status == ActionStatus.ERROR)
+            {
+                errorMessage = PreWorkResult.Message;
+            }
+
+            if (WorkResult?.Status == ActionStatus.ERROR)
+            {
+                errorMessage = WorkResult.Message;
+            }
+
+            if (PostWorkResult?.Status == ActionStatus.ERROR)
+            {
+                errorMessage = PostWorkResult.Message;
+            }
+
+            return errorMessage;
+        }
     }
 }
