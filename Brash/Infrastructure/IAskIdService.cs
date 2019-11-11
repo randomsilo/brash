@@ -19,5 +19,6 @@ namespace Brash.Infrastructure
         ActionResult<T> FetchPostWork(T model);
         ActionResult<T> UpdatePostWork(T model);
         ActionResult<T> DeletePostWork(T model);
+        QueryResult<T> FindWhere(string where);
     }
 }

@@ -123,6 +123,11 @@ namespace Brash.Infrastructure
             return serviceResult;
         }
 
+        public QueryResult<T> FindWhere(string where)
+        {
+            return Repository.FindWhere(where);
+        }
+
         public virtual ActionResult<T> CreatePreWork(T model)
         {
             return new ActionResult<T>() {
