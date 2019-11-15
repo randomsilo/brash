@@ -20,7 +20,7 @@ namespace brashcli
         {
             System.IO.Directory.CreateDirectory("./tmp");
 
-            return CommandLine.Parser.Default.ParseArguments<ProjectInitialization,DataInitialization, SqliteGeneration, CsDomainGeneration, CsRepoGeneration, CsXtestGeneration>(args)
+            return CommandLine.Parser.Default.ParseArguments<ProjectInitialization,DataInitialization, SqliteGeneration, CsDomainGeneration, CsRepoGeneration, CsXtestGeneration, CsApiGeneration>(args)
 	            .MapResult(
 	                (ProjectInitialization opts) => CreateProjectInitializeScript(opts)
                     , (DataInitialization opts) => CreateDataJsonFile(opts)
@@ -28,6 +28,7 @@ namespace brashcli
                     , (CsDomainGeneration opts) => CreateCsDomainFiles(opts)
                     , (CsRepoGeneration opts) => CreateCsRepoFiles(opts)
                     , (CsXtestGeneration opts) => CreateCsXtestFiles(opts)
+                    , (CsApiGeneration opts) => CreateCsApiFiles(opts)
                     , errs => 1);
         }
 
@@ -198,6 +199,35 @@ namespace brashcli
                 catch(Exception exception)
                 {
                     logger.Error(exception, "CreateCsXtestFiles, unhandled exception caught.");
+                    returnCode = -1;
+                    break;
+                }
+
+            } while(false);
+
+            return returnCode;
+		}
+
+        static int CreateCsApiFiles(CsApiGeneration opts)
+		{
+            int returnCode = 0;
+            var logger = GetLogger();
+
+            logger.Information($"File  : {opts.FilePath}"); 
+
+			do 
+            {
+                try 
+                {
+                    CsApiGenerationProcess process = new CsApiGenerationProcess(logger, opts);
+                    returnCode = process.Execute();
+                    if (returnCode != 0)
+                        break;
+
+                }
+                catch(Exception exception)
+                {
+                    logger.Error(exception, "CreateCsApiFiles, unhandled exception caught.");
                     returnCode = -1;
                     break;
                 }
