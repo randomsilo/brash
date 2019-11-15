@@ -20,10 +20,7 @@ namespace brashcli.Process
 		private string _pathApiDirectory;
 		private string _pathControllerDirectory;
 		private DomainStructure _domainStructure;
-		private Dictionary<string,string> _tablePrimaryKeyDataType = new Dictionary<string, string>();
-		private List<string> _columns = new List<string>();
-		private List<string> _selectColumns = new List<string>();
-		private List<string> _primaryKeyColumns = new List<string>();
+		private List<string> _entities = new List<string>();
 		
         public CsApiGenerationProcess(ILogger logger, CsApiGeneration options)
         {
@@ -80,36 +77,51 @@ namespace brashcli.Process
 			_logger.Debug("CreateApiFiles");
 
 			// Make Program.cs
+			System.IO.File.WriteAllText( 
+				System.IO.Path.Combine(_pathApiDirectory, "Program.cs")
+				, TplCsApiProgram(_domainStructure.Domain));
+
 			// Make Startup.cs
-			// Make BrashConfigure.cs
+			System.IO.File.WriteAllText( 
+				System.IO.Path.Combine(_pathApiDirectory, "Startup.cs")
+				, TplCsApiStartup(_domainStructure.Domain));			
 			
-			foreach( var entry in _domainStructure.Structure)
+			foreach( var entity in _domainStructure.Structure)
 			{
-				MakeApiFiles(null, entry);
+				MakeApiFiles(null, entity);
 			}
+
+			// Make BrashConfigure.cs
+			System.IO.File.WriteAllText( 
+				System.IO.Path.Combine(_pathApiDirectory, "BrashConfigure.cs")
+				, TplCsApiBrashConfigure(_domainStructure.Domain, _entities));
+
 		}
 
-		private void MakeApiFiles( Structure parent, Structure entry)
+		private void MakeApiFiles( Structure parent, Structure entity)
 		{
-			_logger.Debug($"{entry.Name}");
+			_logger.Debug($"{entity.Name}");
+
+			_entities.Add(entity.Name);
+
 			if (parent != null)
 				_logger.Debug($"\t Parent: {parent.Name}");
 
-			MakeControllerFileCs(parent, entry);
+			MakeControllerFileCs(parent, entity);
 			
-			if (entry.Children != null && entry.Children.Count > 0)
+			if (entity.Children != null && entity.Children.Count > 0)
 			{
-				foreach( var child in entry.Children)
+				foreach( var child in entity.Children)
 				{
-					MakeApiFiles(entry, child);
+					MakeApiFiles(entity, child);
 				}
 			}
 			
-			if (entry.Extensions != null && entry.Extensions.Count > 0)
+			if (entity.Extensions != null && entity.Extensions.Count > 0)
 			{
-				foreach( var extension in entry.Extensions)
+				foreach( var extension in entity.Extensions)
 				{
-					MakeApiFiles(entry, extension);
+					MakeApiFiles(entity, extension);
 				}
 			}
 		}
@@ -186,13 +198,13 @@ namespace brashcli.Process
 			lines.Append($"\n\t\tpublic ActionResult<IEnumerable<{entityName}>> Get()");
 			lines.Append( "\n\t\t{");
 			
-			if (entity.AdditionalPatterns.Contains(Global.ADDITIONALPATTERN_CHOICE))
+			if (entity.AdditionalPatterns != null && entity.AdditionalPatterns.Contains(Global.ADDITIONALPATTERN_CHOICE))
 			{
 				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE IsDisabled = 0 ORDER BY OrderNo \");");
 			}
 			else
 			{
-				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE 1 = 1\");");
+				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE 1 = 1 ORDER BY 1 \");");
 			}
 			
 			lines.Append( "\n\t\t\tif (queryResult.Status == Brash.Infrastructure.QueryStatus.ERROR)");
@@ -266,433 +278,191 @@ namespace brashcli.Process
             return lines.ToString();
         }
 
+		public string TplCsApiAskGuid(
+			string domain
+			, Structure entity
+			, string idPattern
+			)
+        {
+			string entityName = entity.Name;
+			string entityInstanceName = ToLowerFirstChar(entity.Name);
+            StringBuilder lines = new StringBuilder();
 
+			// TODO
 
-		private void SaveTableIdDataType(Structure entry)
-		{
-			_tablePrimaryKeyDataType.Add(entry.Name, entry.IdPattern ?? Global.IDPATTERN_ASKID);
+			return lines.ToString();
 		}
 
-		private void AnalyzeStructure(Structure parent, Structure entity)
-		{
-			_columns = new List<string>();
-			_selectColumns = new List<string>();
-			_primaryKeyColumns = new List<string>();
+		public string TplCsApiAskVersion(
+			string domain
+			, Structure entity
+			, string idPattern
+			)
+        {
+			string entityName = entity.Name;
+			string entityInstanceName = ToLowerFirstChar(entity.Name);
+            StringBuilder lines = new StringBuilder();
 
-			switch(entity.IdPattern)
-			{
-				case Global.IDPATTERN_ASKGUID:
-					_columns.Add($"{entity.Name}Guid");
-					_selectColumns.Add($"{entity.Name}Guid");
-					_primaryKeyColumns.Add($"{entity.Name}Guid");
-					break;
-				case Global.IDPATTERN_ASKVERSION:
-					_columns.Add($"{entity.Name}Guid");
-					_selectColumns.Add($"{entity.Name}Guid");
-					_primaryKeyColumns.Add($"{entity.Name}Guid");
+			// TODO
 
-					_columns.Add($"{entity.Name}RecordVersion");
-					_selectColumns.Add($"{entity.Name}RecordVersion");
-					_primaryKeyColumns.Add($"{entity.Name}RecordVersion");
-
-					_columns.Add($"IsCurrent");
-					_selectColumns.Add($"IsCurrent");
-					break;
-				case Global.IDPATTERN_ASKID:
-				default:
-					_columns.Add($"{entity.Name}Id");
-					_selectColumns.Add($"{entity.Name}Id");
-					_primaryKeyColumns.Add($"{entity.Name}Id");
-					break;
-			}
-
-			if (parent != null)
-			{
-				switch(parent.IdPattern)
-				{
-					case Global.IDPATTERN_ASKGUID:
-						_columns.Add($"{parent.Name}Guid");
-						_selectColumns.Add($"{parent.Name}Guid");
-						break;
-					case Global.IDPATTERN_ASKVERSION:
-						_columns.Add($"{parent.Name}Guid");
-						_selectColumns.Add($"{parent.Name}Guid");
-
-						_columns.Add($"{parent.Name}RecordVersion");
-						_selectColumns.Add($"{parent.Name}RecordVersion");
-						break;
-					case Global.IDPATTERN_ASKID:
-					default:
-						_columns.Add($"{parent.Name}Id");
-						_selectColumns.Add($"{parent.Name}Id");
-						break;
-				}
-			}
-
-			if (entity.AdditionalPatterns != null)
-			{
-				foreach( string pattern in entity.AdditionalPatterns)
-				{
-					switch(pattern)
-					{
-						case Global.ADDITIONALPATTERN_CHOICE:
-							_columns.Add($"ChoiceName");
-							_selectColumns.Add($"ChoiceName");
-
-							_columns.Add($"OrderNo");
-							_selectColumns.Add($"OrderNo");
-
-							_columns.Add($"IsDisabled");
-							_selectColumns.Add($"IsDisabled");
-
-							break;
-						default:
-							string msg = $"Additional Pattern: {pattern} not found.  Entity {entity.Name} has an error.";
-							_logger.Warning(msg);
-							throw new ArgumentException(msg);
-					}
-				}
-			}
-
-			ProcessFields(entity);
-			ProcessReferences(entity);
-			ProcessTrackingPattern(entity);
-
+			return lines.ToString();
 		}
 
-		private void ProcessFields(Structure entity)
+		public string TplCsApiProgram(string domain)
 		{
-			if (entity.Fields != null)
-			{
-				foreach( var field in entity.Fields)
-				{
-					AddField( field);
-				}
-			}
+			return @"using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
+
+namespace " + domain + @".Api
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            // ASP.NET Core 3.0+:
+            // The UseServiceProviderFactory call attaches the
+            // Autofac provider to the generic hosting mechanism.
+            var host = Host.CreateDefaultBuilder(args)
+                .UseServiceProviderFactory(new Autofac.Extensions.DependencyInjection.AutofacServiceProviderFactory())
+                .ConfigureWebHostDefaults(webHostBuilder => {
+                webHostBuilder
+                    .UseContentRoot(System.IO.Directory.GetCurrentDirectory())
+                    .UseStartup<Startup>();
+                })
+                .Build();
+
+            host.Run();
+        }
+
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                });
+    }
+}";
 		}
 
-		private void AddField(Field field)
+		public string TplCsApiStartup(string domain)
 		{
-			switch(field.Type)
-			{
-				
-				case "D":
-					_columns.Add($"{field.Name}");
-					_selectColumns.Add($"datetime({field.Name},'unixepoch') AS {field.Name}");
-					break;
-				case "B":
-					throw new NotImplementedException();
-				case "N":
-				case "F":
-				case "I":
-				case "S":
-				case "C":
-				case "G":
-				default:
-					_columns.Add($"{field.Name}");
-					_selectColumns.Add($"{field.Name}");
-					break;
-			}
+			return @"using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Autofac;
+
+namespace " + domain + @".Api
+{
+    public class Startup
+    {
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+
+        public IConfiguration Configuration { get; }
+
+        // This method gets called by the runtime. Use this method to add services to the container.
+        public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddControllers();
+        }
+
+        public void ConfigureContainer(ContainerBuilder containerBuilder)
+        {
+            // wire up using autofac specific APIs here
+            BrashConfigure.LoadContainer( containerBuilder);
+        }
+
+        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+
+            app.UseHttpsRedirection();
+
+            app.UseRouting();
+
+            app.UseAuthorization();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
+        }
+    }
+}";
 		}
 
-		private void ProcessReferences(Structure entity)
+		public string TplCsApiBrashConfigure(string domain, List<string> entities)
 		{
-			if (entity.References != null)
-			{
-				foreach( var reference in entity.References)
-				{
-					AddReferenceFields( reference);
-				}
-			}
-		}
+			StringBuilder lines = new StringBuilder();
 
-		private void AddReferenceFields( Reference reference)
-		{
-			string idPattern = _tablePrimaryKeyDataType[reference.TableName];
-			switch(idPattern)
-			{
-				case Global.IDPATTERN_ASKGUID:
-					_columns.Add($"{reference.ColumnName}GuidRef");
-					_selectColumns.Add($"{reference.ColumnName}GuidRef");
-					break;
-				case Global.IDPATTERN_ASKVERSION:
-					_columns.Add($"{reference.ColumnName}GuidRef");
-					_selectColumns.Add($"{reference.ColumnName}GuidRef");
+			lines.Append(@"using Autofac;
+using Serilog;
+using Brash.Infrastructure;
+using Brash.Infrastructure.Sqlite;
+using MyProject.Infrastructure.Sqlite.Repository;
+using MyProject.Infrastructure.Sqlite.RepositorySql;
+using MyProject.Infrastructure.Sqlite.Service;
 
-					_columns.Add($"{reference.ColumnName}RecordVersionRef");
-					_selectColumns.Add($"{reference.ColumnName}RecordVersionRef");
-					break;
-				case Global.IDPATTERN_ASKID:
-				default:
-					_columns.Add($"{reference.ColumnName}IdRef");
-					_selectColumns.Add($"{reference.ColumnName}IdRef");
-					break;
-			}
-		}
+namespace MyProject.Api
+{
+    public class BrashConfigure
+    {
+        public static void LoadContainer(ContainerBuilder containerBuilder)
+        {
+            var path = System.IO.Directory.GetCurrentDirectory();");
+			lines.Append($"\n\t\t\tvar name = \"{domain}\";");
+			lines.Append($"\n\t\t\t");
+			lines.Append($"\n\t\t\t// Logger");
+			lines.Append($"\n\t\t\tvar logfilename = $"); lines.Append("\"{path}/{name}.log\";");
+			lines.Append(@"
+            var logger = new LoggerConfiguration()
+				.MinimumLevel.Verbose()
+				.WriteTo.File(logfilename, rollingInterval: RollingInterval.Day)
+				.CreateLogger();
 
-		private void ProcessTrackingPattern(Structure entity)
-		{
-			if (entity.TrackingPattern != null && !entity.TrackingPattern.Equals(Global.TRACKINGPATTERN_NONE))
-			{
-				string pattern = entity.TrackingPattern;
-				switch(pattern)
-				{
-					case Global.TRACKINGPATTERN_AUDIT:
-						_columns.Add($"CreatedBy");
-						_selectColumns.Add($"CreatedBy");
-
-						_columns.Add($"CreatedOn");
-						_selectColumns.Add($"datetime(CreatedOn,'unixepoch') AS CreatedOn");
-
-						_columns.Add($"UpdatedBy");
-						_selectColumns.Add($"UpdatedBy");
-
-						_columns.Add($"UpdatedOn");
-						_selectColumns.Add($"datetime(UpdatedOn,'unixepoch') AS UpdatedOn");
-						break;
-					case Global.TRACKINGPATTERN_AUDITPRESERVE:
-						_columns.Add($"CreatedBy");
-						_selectColumns.Add($"CreatedBy");
-
-						_columns.Add($"CreatedOn");
-						_selectColumns.Add($"datetime(CreatedOn,'unixepoch') AS CreatedOn");
-
-						_columns.Add($"UpdatedBy");
-						_selectColumns.Add($"UpdatedBy");
-
-						_columns.Add($"UpdatedOn");
-						_selectColumns.Add($"datetime(UpdatedOn,'unixepoch') AS UpdatedOn");
-
-						_columns.Add($"IsDeleted");
-						_selectColumns.Add($"IsDeleted");
-						break;
-					case Global.TRACKINGPATTERN_VERSION:
-						_columns.Add($"RecordState");
-						_selectColumns.Add($"RecordState");
-
-						_columns.Add($"PerformedBy");
-						_selectColumns.Add($"PerformedBy");
-
-						_columns.Add($"PerformedOn");
-						_selectColumns.Add($"datetime(PerformedOn,'unixepoch') AS PerformedOn");
-
-						_columns.Add($"PerformedReason");
-						_selectColumns.Add($"PerformedReason");
-						break;
-					default:
-						string msg = $"Tracking Pattern: {pattern} not found.  Entity {entity.Name} has an error.";
-						_logger.Warning(msg);
-						throw new ArgumentException(msg);
-				}
-			}
-		}
-
-
-		private string BuildCreateStatement(Structure parent, Structure entity)
-		{
-			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
-
-			statement.Append($"INSERT INTO {entity.Name} (");
-			statement.Append($"\n\t\t\t\t--- Columns");
-
-			addComma = false;
-			foreach( var column in _columns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\t) VALUES (");
+			");
 			
-			statement.Append($"\n\t\t\t\t--- Values");
+            lines.Append("\n\t\t\t// Database Configuration");
+            lines.Append("\n\t\t\tvar databaseFile = $\"../sql/sqlite/{name}.webapi.sqlite\";");
+            lines.Append("\n\t\t\tbool databaseExists = System.IO.File.Exists(databaseFile);");
+            lines.Append("\n\t\t\tvar databaseContext = new DatabaseContext(");
+            lines.Append("\n\t\t\t        $\"Data Source={databaseFile}\" ");
+            lines.Append("\n\t\t\t        , $\"{name}Db\"");
+            lines.Append("\n\t\t\t        , $\"{name}Schema\"");
+            lines.Append("\n\t\t\t        , $\"../sql/sqlite/ALL.sql\");");
 
-			addComma = false;
-			foreach( var column in _columns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"@{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\t);");
-			statement.Append($"\n\t\t\tSELECT last_insert_rowid();");
-
-			return statement.ToString();
-		}
-
-		private string BuildFetchStatement(Structure parent, Structure entity)
-		{
-			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
-
-			statement.Append($"SELECT");
-			statement.Append($"\n\t\t\t\t--- Columns");
-
-			addComma = false;
-			foreach( var column in _selectColumns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\tFROM");
-			statement.Append($"\n\t\t\t\t{entity.Name}");
-			statement.Append($"\n\t\t\tWHERE");
+			lines.Append(@"
+            // Database Manager
+            var databaseManager = new DatabaseManager(databaseContext);
+            if (!databaseExists)
+            {
+                databaseManager.CreateDatabase();
+            }
 			
-			addComma = false;
-			foreach( var column in _primaryKeyColumns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
+            // Container Registar: Database 
+            containerBuilder.RegisterInstance(logger).As<Serilog.ILogger>();
+            containerBuilder.RegisterInstance(databaseContext).As<IDatabaseContext>();
+            containerBuilder.RegisterInstance(databaseManager).As<IManageDatabase>();
+			");
 
-				statement.Append($"{column} = @{column}");
-				addComma = true;
+			foreach( var entityName in entities)
+			{
+				lines.Append( $"\n\t\t\t// Container Registar: {entityName}");
+				lines.Append( "\n\t\t\tcontainerBuilder.Register<" + entityName + "RepositorySql>((c) => { return new " + entityName + "RepositorySql(); });");
+            	lines.Append( "\n\t\t\tcontainerBuilder.Register<" + entityName + "Repository>((c) => { return new " + entityName + "Repository( c.Resolve<IManageDatabase>(), c.Resolve<" + entityName + "RepositorySql>(), c.Resolve<Serilog.ILogger>()); });");
+            	lines.Append( "\n\t\t\tcontainerBuilder.Register<" + entityName + "Service>((c) => { return new " + entityName + "Service( c.Resolve<" + entityName + "Repository>(), c.Resolve<Serilog.ILogger>()); });");
+            	lines.Append( $"\n\t\t\t");
 			}
 
-			statement.Append($"\n\t\t\t;");
-
-			return statement.ToString();
+			return lines.ToString();
 		}
-
-		private string BuildFindStatement(Structure parent, Structure entity)
-		{
-			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
-
-			statement.Append($"SELECT");
-			statement.Append($"\n\t\t\t\t--- Columns");
-
-			addComma = false;
-			foreach( var column in _selectColumns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\tFROM");
-			statement.Append($"\n\t\t\t\t{entity.Name}");
-			statement.Append($"\n\t\t\t");
-
-			return statement.ToString();
-		}
-
-		private string BuildUpdateStatement(Structure parent, Structure entity)
-		{
-			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
-
-			statement.Append($"UPDATE {entity.Name}");
-			statement.Append($"\n\t\t\tSET");
-
-			addComma = false;
-			foreach( var column in _columns)
-			{
-				if (_primaryKeyColumns.Contains(column))
-					continue;
-
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column} = @{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\tWHERE");
-			
-			addComma = false;
-			foreach( var column in _primaryKeyColumns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column} = @{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\t;");
-
-			return statement.ToString();
-		}
-
-		private string BuildDeleteStatement(Structure parent, Structure entity)
-		{
-			if (entity.TrackingPattern != null && entity.TrackingPattern.Equals(Global.TRACKINGPATTERN_AUDITPRESERVE))
-			{
-				return BuildDeleteUpdateFlagStatement(parent, entity);
-			}
-			else
-			{
-				return BuildDeleteStatementActual(parent, entity);
-			}
-		}
-
-		private string BuildDeleteStatementActual(Structure parent, Structure entity)
-		{
-			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
-
-			statement.Append($"DELETE FROM {entity.Name}");
-			statement.Append($"\n\t\t\tWHERE");
-			
-			addComma = false;
-			foreach( var column in _primaryKeyColumns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column} = @{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\t;");
-
-			return statement.ToString();
-		}
-
-		private string BuildDeleteUpdateFlagStatement(Structure parent, Structure entity)
-		{
-			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
-
-			statement.Append($"UPDATE {entity.Name}");
-			statement.Append($"\n\t\t\tSET IsDeleted = 1");
-			statement.Append($"\n\t\t\tWHERE");
-			
-			addComma = false;
-			foreach( var column in _primaryKeyColumns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column} = @{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\t;");
-
-			return statement.ToString();
-		}
-
     }
 }
