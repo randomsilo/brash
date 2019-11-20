@@ -143,6 +143,8 @@ dotnet add package xunit.runner.visualstudio
 cd ..
 
 cd $PROJECT.Api
+dotnet add package Autofac
+dotnet add package Autofac.Extensions.DependencyInjection
 dotnet add package Dapper
 dotnet add package Serilog
 dotnet add package Serilog.Sinks.Console

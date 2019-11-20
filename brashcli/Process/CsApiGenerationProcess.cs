@@ -200,7 +200,7 @@ namespace brashcli.Process
 			
 			if (entity.AdditionalPatterns != null && entity.AdditionalPatterns.Contains(Global.ADDITIONALPATTERN_CHOICE))
 			{
-				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE IsDisabled = 0 ORDER BY OrderNo \");");
+				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE IFNULL(IsDisabled, 0) = 0 ORDER BY OrderNo \");");
 			}
 			else
 			{
@@ -427,7 +427,6 @@ namespace MyProject.Api
 				.MinimumLevel.Verbose()
 				.WriteTo.File(logfilename, rollingInterval: RollingInterval.Day)
 				.CreateLogger();
-
 			");
 			
             lines.Append("\n\t\t\t// Database Configuration");
@@ -440,6 +439,7 @@ namespace MyProject.Api
             lines.Append("\n\t\t\t        , $\"../sql/sqlite/ALL.sql\");");
 
 			lines.Append(@"
+
             // Database Manager
             var databaseManager = new DatabaseManager(databaseContext);
             if (!databaseExists)
@@ -461,6 +461,10 @@ namespace MyProject.Api
             	lines.Append( "\n\t\t\tcontainerBuilder.Register<" + entityName + "Service>((c) => { return new " + entityName + "Service( c.Resolve<" + entityName + "Repository>(), c.Resolve<Serilog.ILogger>()); });");
             	lines.Append( $"\n\t\t\t");
 			}
+
+			lines.Append(  "\n\t\t}");
+			lines.Append(  "\n\t}");
+			lines.Append(  "\n}");
 
 			return lines.ToString();
 		}
