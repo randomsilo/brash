@@ -9,12 +9,12 @@ using Brash.Model;
 
 namespace Brash.Infrastructure.Sqlite
 {
-    public class AskIdRepository<T> : IAskIdRepository<T> where T : IAskId
+    public class AskGuidRepository<T> : IAskGuidRepository<T> where T : IAskGuid
     {
         public IManageDatabase DatabaseManager { get; private set; }
-        public AAskIdRepositorySql RepositorySql { get; private set; }
+        public AAskGuidRepositorySql RepositorySql { get; private set; }
         public ILogger Logger { get; private set; }
-        public AskIdRepository(IManageDatabase databaseManager, AAskIdRepositorySql askIdRepositorySql, ILogger logger)
+        public AskGuidRepository(IManageDatabase databaseManager, AAskGuidRepositorySql askIdRepositorySql, ILogger logger)
         {
             DatabaseManager = databaseManager;
             RepositorySql = askIdRepositorySql;
@@ -76,6 +76,25 @@ namespace Brash.Infrastructure.Sqlite
             id = (int?)propertyInfo.GetValue(model);
 
             return id;
+        }
+
+        public string GetGuid(T model)
+        {
+            string guid = null;
+
+            //find out the type
+            Type type = model.GetType();
+        
+            //get the property information based on the type
+            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(model.GetGuidPropertyName());
+        
+            //find the property type
+            Type propertyType = propertyInfo.PropertyType;
+        
+            //Set the value of the property
+            guid = (string)propertyInfo.GetValue(model);
+
+            return guid;
         }
 
         public ActionResult<T> Create(T model)
@@ -237,6 +256,8 @@ namespace Brash.Infrastructure.Sqlite
             using (var connection = GetDatabaseConnection())
             {
                 connection.Open();
+                Logger.Verbose(RepositorySql.GetUpdateStatement());
+                Logger.Verbose($"ID: {GetId(model)}, GUID: {GetGuid(model)}");
                 Logger.Verbose(RepositorySql.GetUpdateStatement());
                 rows = connection.Execute(RepositorySql.GetUpdateStatement(), model);
             }

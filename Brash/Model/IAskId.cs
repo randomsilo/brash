@@ -4,6 +4,6 @@ namespace Brash.Model
 {
     public interface IAskId
     {
-        string GetAskIdPropertyName();
+        string GetIdPropertyName();
     }
 }

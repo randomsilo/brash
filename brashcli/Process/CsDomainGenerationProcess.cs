@@ -77,56 +77,57 @@ namespace brashcli.Process
 		{
 			_logger.Debug("CreateDomainModelFiles");
 			
-			foreach( var entry in _domainStructure.Structure)
+			foreach( var entity in _domainStructure.Structure)
 			{
-				MakeDomainModelFile(null, entry);
+				MakeDomainModelFile(null, entity);
 			}
 		}
 
-		private void MakeDomainModelFile( Structure parent, Structure entry)
+		private void MakeDomainModelFile( Structure parent, Structure entity)
 		{
-			_logger.Debug($"{entry.Name}");
+			_logger.Debug($"{entity.Name}");
 			if (parent != null)
 				_logger.Debug($"\t Parent: {parent.Name}");
 
-			MakeDomainModelFileCs(parent, entry);
+			MakeDomainModelFileCs(parent, entity);
 			
-			if (entry.Children != null && entry.Children.Count > 0)
+			if (entity.Children != null && entity.Children.Count > 0)
 			{
-				foreach( var child in entry.Children)
+				foreach( var child in entity.Children)
 				{
-					MakeDomainModelFile(entry, child);
+					MakeDomainModelFile(entity, child);
 				}
 			}
 			
-			if (entry.Extensions != null && entry.Extensions.Count > 0)
+			if (entity.Extensions != null && entity.Extensions.Count > 0)
 			{
-				foreach( var extension in entry.Extensions)
+				foreach( var extension in entity.Extensions)
 				{
-					MakeDomainModelFile(entry, extension);
+					MakeDomainModelFile(entity, extension);
 				}
 			}
 		}
 
-		public string MakeEntryFilePath(Structure entry)
+		public string MakeEntryFilePath(Structure entity)
 		{
-			return System.IO.Path.Combine(_pathDomainModel, entry.Name + ".cs");
+			return System.IO.Path.Combine(_pathDomainModel, entity.Name + ".cs");
 		}
 
-		private void MakeDomainModelFileCs(Structure parent, Structure entry)
+		private void MakeDomainModelFileCs(Structure parent, Structure entity)
 		{
-			string fileNamePath = MakeEntryFilePath(entry);
+			string fileNamePath = MakeEntryFilePath(entity);
 			StringBuilder lines = new StringBuilder();
 
-			SaveTableIdDataType(entry);
-			AnalyzeStructure(parent, entry);
+			SaveTableIdDataType(entity);
+			AnalyzeStructure(parent, entity);
 
 			lines.Append( TplCsDomain(
 				_domainStructure.Domain
-				, entry.Name
+				, entity.Name
 				, GetInterfaces()
 				, GetInterfacesImplementations()
 				, GetFields()
+				, GetConstructor(entity)
 			));
 
 			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
@@ -138,6 +139,7 @@ namespace brashcli.Process
 			, string interfaces
 			, string interfacesImplementations
 			, string fields
+			, string constructor
 			)
         {
             StringBuilder lines = new StringBuilder();
@@ -153,6 +155,8 @@ namespace brashcli.Process
 			lines.Append($"\n\tpublic class {entityName} : {interfaces}");
 			lines.Append( "\n\t{");
 			lines.Append($"\n");
+			lines.Append( constructor);
+			lines.Append($"\n");
 			lines.Append( fields);
 			lines.Append($"\n");
 			lines.Append( interfacesImplementations);
@@ -163,12 +167,12 @@ namespace brashcli.Process
             return lines.ToString();
         }
 
-		private void SaveTableIdDataType(Structure entry)
+		private void SaveTableIdDataType(Structure entity)
 		{
-			_tablePrimaryKeyDataType.Add(entry.Name, entry.IdPattern ?? Global.IDPATTERN_ASKID);
+			_tablePrimaryKeyDataType.Add(entity.Name, entity.IdPattern ?? Global.IDPATTERN_ASKID);
 		}
 
-		private void AnalyzeStructure(Structure parent, Structure entry)
+		private void AnalyzeStructure(Structure parent, Structure entity)
 		{
 			// clear contents
 			_interfaces = new List<string>();
@@ -179,30 +183,40 @@ namespace brashcli.Process
 
 			_interfaceImplementations.Append("\n\n\t\t// Interface Implementations");
 
-			ProcessIdPattern( entry);
-			ProcessParentPattern( parent, entry);
-			ProcessAdditionalPatterns( entry);
-			ProcessFields( entry);
-			ProcessReferences( entry);	
-			ProcessTrackingPattern( entry);
+			ProcessIdPattern( entity);
+			ProcessParentPattern( parent, entity);
+			ProcessAdditionalPatterns( entity);
+			ProcessFields( entity);
+			ProcessReferences( entity);	
+			ProcessTrackingPattern( entity);
 
 		}
 
-		private void ProcessIdPattern(Structure entry)
+		private void ProcessIdPattern(Structure entity)
 		{
 			_fields.Append("\t\t// IdPattern");
-			switch(entry.IdPattern)
+
+			_fields.Append("\n\t\t");
+			_fields.Append($"public int? {entity.Name}Id");
+			_fields.Append(" { get; set; }");
+
+			_interfaceImplementations.Append("\n\t\tpublic string GetIdPropertyName()");
+			_interfaceImplementations.Append("\n\t\t{");
+			_interfaceImplementations.Append($"\n\t\t	return \"{entity.Name}Id\";");
+			_interfaceImplementations.Append("\n\t\t}");
+
+			switch(entity.IdPattern)
 			{
 				case Global.IDPATTERN_ASKGUID:
 					_interfaces.Add("IAskGuid");
 
 					_fields.Append("\n\t\t");
-					_fields.Append($"public string {entry.Name}Guid");
+					_fields.Append($"public string {entity.Name}Guid");
 					_fields.Append(" { get; set; }");
 
-					_interfaceImplementations.Append("\n\t\tpublic string GetAskGuidPropertyName()");
+					_interfaceImplementations.Append("\n\t\tpublic string GetGuidPropertyName()");
 					_interfaceImplementations.Append("\n\t\t{");
-					_interfaceImplementations.Append($"\n\t\t	return \"{entry.Name}Guid\";");
+					_interfaceImplementations.Append($"\n\t\t	return \"{entity.Name}Guid\";");
 					_interfaceImplementations.Append("\n\t\t}");
 
 					break;
@@ -210,34 +224,31 @@ namespace brashcli.Process
 					_interfaces.Add("IAskVersion");
 
 					_fields.Append("\n\t\t");
-					_fields.Append($"public Guid? {entry.Name}Guid");
+					_fields.Append($"public string {entity.Name}Guid");
 					_fields.Append(" { get; set; }");
 
 					_fields.Append("\n\t\t");
-					_fields.Append($"int? {entry.Name}RecordVersion");
+					_fields.Append($"public decimal? {entity.Name}RecordVersion");
 					_fields.Append(" { get; set; }");
 
 					_fields.Append("\n\t\t");
-					_fields.Append($"bool? IsCurrent");
+					_fields.Append($"public bool? IsCurrent");
 					_fields.Append(" { get; set; }");
 
-					_interfaceImplementations.Append("\n\t\tpublic string GetAskVersionPropertyName()");
+					_interfaceImplementations.Append("\n\t\tpublic string GetGuidPropertyName()");
 					_interfaceImplementations.Append("\n\t\t{");
-					_interfaceImplementations.Append($"\n\t\t	return \"{entry.Name}Guid\";");
+					_interfaceImplementations.Append($"\n\t\t	return \"{entity.Name}Guid\";");
+					_interfaceImplementations.Append("\n\t\t}");
+
+					_interfaceImplementations.Append("\n\t\tpublic string GetVersionPropertyName()");
+					_interfaceImplementations.Append("\n\t\t{");
+					_interfaceImplementations.Append($"\n\t\t	return \"{entity.Name}RecordVersion\";");
 					_interfaceImplementations.Append("\n\t\t}");
 					break;
 				case Global.IDPATTERN_ASKID:
 				default:
 					_interfaces.Add("IAskId");
 
-					_fields.Append("\n\t\t");
-					_fields.Append($"public int? {entry.Name}Id");
-					_fields.Append(" { get; set; }");
-
-					_interfaceImplementations.Append("\n\t\tpublic string GetAskIdPropertyName()");
-					_interfaceImplementations.Append("\n\t\t{");
-					_interfaceImplementations.Append($"\n\t\t	return \"{entry.Name}Id\";");
-					_interfaceImplementations.Append("\n\t\t}");
 					break;
 			}
 		}
@@ -271,7 +282,7 @@ namespace brashcli.Process
 						_fields.Append(" { get; set; }");
 
 						_fields.Append("\n\t\t");
-						_fields.Append($"public int? {parent.Name}RecordVersion");
+						_fields.Append($"public decimal? {parent.Name}RecordVersion");
 						_fields.Append(" { get; set; }");
 
 						_interfaceImplementations.Append("\n\t\t");
@@ -483,6 +494,32 @@ namespace brashcli.Process
 			}
 		}
 
+		private string GetConstructor(Structure entity)
+		{
+			StringBuilder template = new StringBuilder();
+			template.Append($"\n\t\tpublic {entity.Name}()");
+			template.Append( "\n\t\t{");
+
+			switch(entity.IdPattern)
+			{
+				case Global.IDPATTERN_ASKGUID:
+					template.Append($"\n\t\t\t{entity.Name}Guid = Guid.NewGuid().ToString();");
+					break;
+				case Global.IDPATTERN_ASKVERSION:
+					template.Append($"\n\t\t\t{entity.Name}Guid = Guid.NewGuid().ToString();");
+					template.Append($"\n\t\t\t{entity.Name}RecordVersion = 1;");
+					template.Append($"\n\t\t\tIsCurrent = true;");
+					break;
+				case Global.IDPATTERN_ASKID:
+				default:
+					break;
+			}
+
+			template.Append( "\n\t\t}");
+
+			return template.ToString();
+		}
+
 		private string GetInterfaces()
 		{
 			StringBuilder template = new StringBuilder();
@@ -510,43 +547,43 @@ namespace brashcli.Process
 			return _fields.ToString();
 		}
 		
-		private string GetIdPattern(Structure entry)
+		private string GetIdPattern(Structure entity)
 		{
 			string template = "";
-			switch(entry.IdPattern)
+			switch(entity.IdPattern)
 			{
 				case Global.IDPATTERN_ASKGUID:
-					template = GetTemplateIdPatternAskGuid(entry);
+					template = GetTemplateIdPatternAskGuid(entity);
 					break;
 				case Global.IDPATTERN_ASKVERSION:
-					template = GetTemplateIdPatternAskVersion(entry);
+					template = GetTemplateIdPatternAskVersion(entity);
 					break;
 				case Global.IDPATTERN_ASKID:
 				default:
-					template = GetTemplateIdPatternAskId(entry);
+					template = GetTemplateIdPatternAskId(entity);
 					break;
 			}
 
 			return template;
 		}
 
-		private string GetParentPattern(Structure entry)
+		private string GetParentPattern(Structure entity)
 		{
 			string template = "";
-			if (entry == null)
+			if (entity == null)
 				return template;
 
-			switch(entry.IdPattern)
+			switch(entity.IdPattern)
 			{
 				case Global.IDPATTERN_ASKGUID:
-					template = GetTemplateParentPatternAskGuid(entry);
+					template = GetTemplateParentPatternAskGuid(entity);
 					break;
 				case Global.IDPATTERN_ASKVERSION:
-					template = GetTemplateParentPatternAskVersion(entry);
+					template = GetTemplateParentPatternAskVersion(entity);
 					break;
 				case Global.IDPATTERN_ASKID:
 				default:
-					template = GetTemplateParentPatternAskId(entry);
+					template = GetTemplateParentPatternAskId(entity);
 					break;
 			}
 
@@ -554,26 +591,26 @@ namespace brashcli.Process
 		}
 
 	
-		private string GetAdditionalPattern(Structure entry)
+		private string GetAdditionalPattern(Structure entity)
 		{
 			StringBuilder template = new StringBuilder();
 
-			if (entry.AdditionalPatterns != null 
-				&& entry.AdditionalPatterns.Contains(Global.ADDITIONALPATTERN_CHOICE))
+			if (entity.AdditionalPatterns != null 
+				&& entity.AdditionalPatterns.Contains(Global.ADDITIONALPATTERN_CHOICE))
 			{
-				template.Append(GetTemplateAdditionalPatternChoice(entry));
+				template.Append(GetTemplateAdditionalPatternChoice(entity));
 			}
 
 			return template.ToString();
 		}
 
-		private string GetFieldsPattern(Structure entry)
+		private string GetFieldsPattern(Structure entity)
 		{
 			StringBuilder template = new StringBuilder();
 
-			if (entry.Fields != null)
+			if (entity.Fields != null)
 			{
-				foreach( var field in entry.Fields)
+				foreach( var field in entity.Fields)
 				{
 					template.Append( GetTemplateField(field));
 				}
@@ -612,22 +649,22 @@ namespace brashcli.Process
 			return template;
 		}
 
-		private string GetTrackingPattern(Structure entry)
+		private string GetTrackingPattern(Structure entity)
 		{
 			string template = "";
 
-			if (entry.TrackingPattern != null)
+			if (entity.TrackingPattern != null)
 			{
-				switch(entry.TrackingPattern)
+				switch(entity.TrackingPattern)
 				{
 					case Global.TRACKINGPATTERN_AUDIT:
-						template = GetTemplateTrackingPatternAudit(entry);
+						template = GetTemplateTrackingPatternAudit(entity);
 						break;
 					case Global.TRACKINGPATTERN_AUDITPRESERVE:
-						template = GetTemplateTrackingPatternAuditPreserve(entry);
+						template = GetTemplateTrackingPatternAuditPreserve(entity);
 						break;
 					case Global.TRACKINGPATTERN_VERSION:
-						template = GetTemplateTrackingPatternVersion(entry);
+						template = GetTemplateTrackingPatternVersion(entity);
 						break;
 					case Global.TRACKINGPATTERN_NONE:
 					default:
@@ -638,15 +675,15 @@ namespace brashcli.Process
 			return template;
 		}
 
-		private string GetReferences(Structure entry)
+		private string GetReferences(Structure entity)
 		{
 			StringBuilder template = new StringBuilder();
 
-			if (entry.References != null)
+			if (entity.References != null)
 			{
-				foreach( var reference in entry.References)
+				foreach( var reference in entity.References)
 				{
-					template.Append( GetTemplateReference(reference, _tablePrimaryKeyDataType[entry.Name]));
+					template.Append( GetTemplateReference(reference, _tablePrimaryKeyDataType[entity.Name]));
 				}
 			}
 
@@ -664,7 +701,7 @@ namespace brashcli.Process
 					break;
 				case Global.IDPATTERN_ASKVERSION:
 					template = $"\n\t, {reference.ColumnName}GuidRef TEXT";
-					template = $"\n\t, {reference.ColumnName}RecordVersionRef INTEGER";
+					template = $"\n\t, {reference.ColumnName}RecordVersionRef REAL";
 					break;
 				case Global.IDPATTERN_ASKID:
 				default:
@@ -674,58 +711,58 @@ namespace brashcli.Process
 			
 			return template;
 		}
-		private string GetTemplateIdPatternAskId( Structure entry)
+		private string GetTemplateIdPatternAskId( Structure entity)
         {
-            return $"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT";
+            return $"\t{entity.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT";
 		}
 
-		private string GetTemplateIdPatternAskGuid( Structure entry)
+		private string GetTemplateIdPatternAskGuid( Structure entity)
         {
-            return $"\t{entry.Name}Guid TEXT PRIMARY KEY";
+            return $"\t{entity.Name}Guid TEXT PRIMARY KEY";
 		}
 
-		private string GetTemplateIdPatternAskVersion( Structure entry)
+		private string GetTemplateIdPatternAskVersion( Structure entity)
         {
 			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT");
-			sb.Append( $"\n\t, {entry.Name}Guid TEXT UNIQUE");
-			sb.Append( $"\n\t, RecordVersion INTEGER");
+			sb.Append( $"\t{entity.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT");
+			sb.Append( $"\n\t, {entity.Name}Guid TEXT UNIQUE");
+			sb.Append( $"\n\t, RecordVersion REAL");
 			sb.Append( $"\n\t, IsCurrent INTEGER");
             return sb.ToString();
 		}
 
-		private string GetTemplateParentPatternAskId( Structure entry)
+		private string GetTemplateParentPatternAskId( Structure entity)
         {
-            return $"\n\t, {entry.Name}Id INTEGER";
+            return $"\n\t, {entity.Name}Id INTEGER";
 		}
 
-		private string GetTemplateParentPatternAskGuid( Structure entry)
+		private string GetTemplateParentPatternAskGuid( Structure entity)
         {
-            return $"\n\t, {entry.Name}Guid TEXT";
+            return $"\n\t, {entity.Name}Guid TEXT";
 		}
 
-		private string GetTemplateParentPatternAskVersion( Structure entry)
+		private string GetTemplateParentPatternAskVersion( Structure entity)
         {
 			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, {entry.Name}Guid TEXT");
-			sb.Append( $"\n\t, {entry.Name}RecordVersion INTEGER");
+			sb.Append( $"\n\t, {entity.Name}Guid TEXT");
+			sb.Append( $"\n\t, {entity.Name}RecordVersion REAL");
             return sb.ToString();
 		}
 
-		private string GetTemplateForeignKeyPatternAskId( Structure entry)
+		private string GetTemplateForeignKeyPatternAskId( Structure entity)
         {
-            return $"\n\t, FOREIGN KEY ({entry.Name}Id) REFERENCES {entry.Name}({entry.Name}Id) ON DELETE CASCADE";
+            return $"\n\t, FOREIGN KEY ({entity.Name}Id) REFERENCES {entity.Name}({entity.Name}Id) ON DELETE CASCADE";
 		}
 
-		private string GetTemplateForeignKeyPatternAskGuid( Structure entry)
+		private string GetTemplateForeignKeyPatternAskGuid( Structure entity)
         {
-            return $"\n\t, FOREIGN KEY ({entry.Name}Guid) REFERENCES {entry.Name}({entry.Name}Guid) ON DELETE CASCADE";
+            return $"\n\t, FOREIGN KEY ({entity.Name}Guid) REFERENCES {entity.Name}({entity.Name}Guid) ON DELETE CASCADE";
 		}
 
-		private string GetTemplateForeignKeyPatternAskVersion( Structure entry)
+		private string GetTemplateForeignKeyPatternAskVersion( Structure entity)
         {
 			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, FOREIGN KEY ({entry.Name}Guid) REFERENCES {entry.Name}({entry.Name}Guid) ON DELETE CASCADE");
+			sb.Append( $"\n\t, FOREIGN KEY ({entity.Name}Guid) REFERENCES {entity.Name}({entity.Name}Guid) ON DELETE CASCADE");
             return sb.ToString();
 		}
 
@@ -767,7 +804,7 @@ namespace brashcli.Process
             return sb.ToString();
 		}
 
-		private string GetTemplateAdditionalPatternChoice( Structure entry)
+		private string GetTemplateAdditionalPatternChoice( Structure entity)
         {
 			StringBuilder sb = new StringBuilder();
 			sb.Append( $"\n\t, ChoiceName TEXT");
@@ -776,7 +813,7 @@ namespace brashcli.Process
             return sb.ToString();
 		}
 
-		private string GetTemplateTrackingPatternAudit( Structure entry)
+		private string GetTemplateTrackingPatternAudit( Structure entity)
         {
 			StringBuilder sb = new StringBuilder();
 			sb.Append( $"\n\t, CreatedBy TEXT");
@@ -787,16 +824,16 @@ namespace brashcli.Process
             return sb.ToString();
 		}
 
-		private string GetTemplateTrackingPatternAuditPreserve( Structure entry)
+		private string GetTemplateTrackingPatternAuditPreserve( Structure entity)
         {
 			StringBuilder sb = new StringBuilder();
-			sb.Append( GetTemplateTrackingPatternAudit(entry));
+			sb.Append( GetTemplateTrackingPatternAudit(entity));
 			sb.Append( $"\n\t, IsDeleted INTEGER");
 			
             return sb.ToString();
 		}
 
-		private string GetTemplateTrackingPatternVersion( Structure entry)
+		private string GetTemplateTrackingPatternVersion( Structure entity)
         {
 			StringBuilder sb = new StringBuilder();
 			sb.Append( $"\n\t, RecordState TEXT");

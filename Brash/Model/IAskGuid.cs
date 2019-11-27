@@ -4,6 +4,7 @@ namespace Brash.Model
 {
     public interface IAskGuid
     {
-        string GetAskGuidPropertyName();
+        string GetIdPropertyName();
+        string GetGuidPropertyName();
     }
 }

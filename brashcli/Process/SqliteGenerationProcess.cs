@@ -428,14 +428,17 @@ namespace brashcli.Process
 
 		private string GetTemplateIdPatternAskGuid( Structure entry)
         {
-            return $"\t{entry.Name}Guid TEXT PRIMARY KEY";
+			StringBuilder sb = new StringBuilder();
+			sb.Append( $"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT");
+			sb.Append( $"\n\t, {entry.Name}Guid TEXT");
+            return sb.ToString();
 		}
 
 		private string GetTemplateIdPatternAskVersion( Structure entry)
         {
 			StringBuilder sb = new StringBuilder();
 			sb.Append( $"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT");
-			sb.Append( $"\n\t, {entry.Name}Guid TEXT UNIQUE");
+			sb.Append( $"\n\t, {entry.Name}Guid TEXT");
 			sb.Append( $"\n\t, {entry.Name}RecordVersion REAL");
 			sb.Append( $"\n\t, IsCurrent INTEGER");
             return sb.ToString();

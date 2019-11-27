@@ -4,6 +4,8 @@ namespace Brash.Model
 {
     public interface IAskVersion
     {
-        string GetAskVersionPropertyName();
+        string GetIdPropertyName();
+        string GetGuidPropertyName();
+        string GetVersionPropertyName();
     }
 }

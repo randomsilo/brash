@@ -305,11 +305,17 @@ namespace brashcli.Process
 			switch(entity.IdPattern)
 			{
 				case Global.IDPATTERN_ASKGUID:
+					_columns.Add($"{entity.Name}Id");
+					_selectColumns.Add($"{entity.Name}Id");
+					
 					_columns.Add($"{entity.Name}Guid");
 					_selectColumns.Add($"{entity.Name}Guid");
 					_primaryKeyColumns.Add($"{entity.Name}Guid");
 					break;
 				case Global.IDPATTERN_ASKVERSION:
+					_columns.Add($"{entity.Name}Id");
+					_selectColumns.Add($"{entity.Name}Id");
+
 					_columns.Add($"{entity.Name}Guid");
 					_selectColumns.Add($"{entity.Name}Guid");
 					_primaryKeyColumns.Add($"{entity.Name}Guid");
@@ -546,32 +552,7 @@ namespace brashcli.Process
 			}
 
 			statement.Append($"\n\t\t\t);");
-
-			
-			if(entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION))
-			{
-				StringBuilder pkColumnsCsv = new StringBuilder();
-				addComma = false;
-				foreach( var column in _primaryKeyColumns)
-				{
-					if (addComma)
-						pkColumnsCsv.Append(", ");
-
-					pkColumnsCsv.Append($"{column}");
-					addComma = true;
-				}
-				string selectGuid = $"SELECT {pkColumnsCsv.ToString()} FROM {entity.Name} WHERE rowid = last_insert_rowid();";
-				statement.Append($"\n\t\t\t{selectGuid}");
-			}
-			else if (entity.IdPattern == null || entity.IdPattern.Equals(Global.IDPATTERN_ASKID))
-			{
-				statement.Append($"\n\t\t\tSELECT last_insert_rowid();");
-			}
-			else
-			{
-				throw new NotImplementedException($"Id Pattern: {entity.IdPattern}, not supported.");
-			}
-			
+			statement.Append($"\n\t\t\tSELECT last_insert_rowid();");
 
 			return statement.ToString();
 		}
@@ -598,17 +579,24 @@ namespace brashcli.Process
 			statement.Append($"\n\t\t\tFROM");
 			statement.Append($"\n\t\t\t\t{entity.Name}");
 			statement.Append($"\n\t\t\tWHERE");
-			
-			addComma = false;
-			foreach( var column in _primaryKeyColumns)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
+			statement.Append($"\n\t\t\t\t{entity.Name}Id = IFNULL(@{entity.Name}Id,0)");
 
-				statement.Append($"{column} = @{column}");
-				addComma = true;
+			if (entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION))
+			{
+				statement.Append($"\n\t\t\t\tOR (");
+				bool addSeparator = false;
+				foreach( var column in _primaryKeyColumns)
+				{
+					statement.Append($"\n\t\t\t\t\t");
+					if (addSeparator)
+						statement.Append("AND ");
+
+					statement.Append($"{column} = @{column}");
+					addSeparator = true;
+				}
+				statement.Append($"\n\t\t\t\t)");
 			}
+			
 
 			statement.Append($"\n\t\t\t;");
 
@@ -652,6 +640,9 @@ namespace brashcli.Process
 			addComma = false;
 			foreach( var column in _columns)
 			{
+				if (column.Equals($"{entity.Name}Id"))
+					continue;
+
 				if (_primaryKeyColumns.Contains(column))
 					continue;
 
@@ -664,19 +655,23 @@ namespace brashcli.Process
 			}
 
 			statement.Append($"\n\t\t\tWHERE");
-			
-			addComma = false;
-			foreach( var column in _primaryKeyColumns)
+			statement.Append($"\n\t\t\t\t{entity.Name}Id = IFNULL(@{entity.Name}Id,0)");
+
+			if (entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION))
 			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
+				statement.Append($"\n\t\t\t\tOR (");
+				bool addSeparator = false;
+				foreach( var column in _primaryKeyColumns)
+				{
+					statement.Append($"\n\t\t\t\t\t");
+					if (addSeparator)
+						statement.Append("AND ");
 
-				statement.Append($"{column} = @{column}");
-				addComma = true;
+					statement.Append($"{column} = @{column}");
+					addSeparator = true;
+				}
+				statement.Append($"\n\t\t\t\t)");
 			}
-
-			statement.Append($"\n\t\t\t;");
 
 			return statement.ToString();
 		}
@@ -696,23 +691,26 @@ namespace brashcli.Process
 		private string BuildDeleteStatementActual(Structure parent, Structure entity)
 		{
 			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
 
 			statement.Append($"DELETE FROM {entity.Name}");
 			statement.Append($"\n\t\t\tWHERE");
-			
-			addComma = false;
-			foreach( var column in _primaryKeyColumns)
+			statement.Append($"\n\t\t\t\t{entity.Name}Id = IFNULL(@{entity.Name}Id,0)");
+
+			if (entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION))
 			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
+				statement.Append($"\n\t\t\t\tOR (");
+				bool addSeparator = false;
+				foreach( var column in _primaryKeyColumns)
+				{
+					statement.Append($"\n\t\t\t\t\t");
+					if (addSeparator)
+						statement.Append("AND ");
 
-				statement.Append($"{column} = @{column}");
-				addComma = true;
+					statement.Append($"{column} = @{column}");
+					addSeparator = true;
+				}
+				statement.Append($"\n\t\t\t\t)");
 			}
-
-			statement.Append($"\n\t\t\t;");
 
 			return statement.ToString();
 		}
@@ -720,24 +718,27 @@ namespace brashcli.Process
 		private string BuildDeleteUpdateFlagStatement(Structure parent, Structure entity)
 		{
 			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
 
 			statement.Append($"UPDATE {entity.Name}");
 			statement.Append($"\n\t\t\tSET IsDeleted = 1");
 			statement.Append($"\n\t\t\tWHERE");
-			
-			addComma = false;
-			foreach( var column in _primaryKeyColumns)
+			statement.Append($"\n\t\t\t\t{entity.Name}Id = IFNULL(@{entity.Name}Id,0)");
+
+			if (entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION))
 			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
+				statement.Append($"\n\t\t\t\tOR (");
+				bool addSeparator = false;
+				foreach( var column in _primaryKeyColumns)
+				{
+					statement.Append($"\n\t\t\t\t\t");
+					if (addSeparator)
+						statement.Append("AND ");
 
-				statement.Append($"{column} = @{column}");
-				addComma = true;
+					statement.Append($"{column} = @{column}");
+					addSeparator = true;
+				}
+				statement.Append($"\n\t\t\t\t)");
 			}
-
-			statement.Append($"\n\t\t\t;");
 
 			return statement.ToString();
 		}

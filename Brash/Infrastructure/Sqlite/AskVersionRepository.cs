@@ -9,12 +9,12 @@ using Brash.Model;
 
 namespace Brash.Infrastructure.Sqlite
 {
-    public class AskGuidRepository<T> : IAskGuidRepository<T> where T : IAskGuid
+    public class AskVersionRepository<T> : IAskVersionRepository<T> where T : IAskVersion
     {
         public IManageDatabase DatabaseManager { get; private set; }
-        public AAskGuidRepositorySql RepositorySql { get; private set; }
+        public AAskVersionRepositorySql RepositorySql { get; private set; }
         public ILogger Logger { get; private set; }
-        public AskGuidRepository(IManageDatabase databaseManager, AAskGuidRepositorySql askIdRepositorySql, ILogger logger)
+        public AskVersionRepository(IManageDatabase databaseManager, AAskVersionRepositorySql askIdRepositorySql, ILogger logger)
         {
             DatabaseManager = databaseManager;
             RepositorySql = askIdRepositorySql;
@@ -28,16 +28,16 @@ namespace Brash.Infrastructure.Sqlite
             );
         }
 
-        public void SetGuid(string guid, T model)
+        public void SetId(int? id, T model)
         {
             // value object
-            object propertyVal = (object)guid;
+            object propertyVal = (object)id;
 
             //find out the type
             Type type = model.GetType();
         
             //get the property information based on the type
-            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(model.GetAskGuidPropertyName());
+            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(model.GetIdPropertyName());
         
             //find the property type
             Type propertyType = propertyInfo.PropertyType;
@@ -58,23 +58,24 @@ namespace Brash.Infrastructure.Sqlite
             return type.IsGenericType && type.GetGenericTypeDefinition().Equals(typeof(Nullable<>));
         }
 
-        public string GetGuid(T model)
+
+        public int? GetId(T model)
         {
-            string guid = null;
+            int? id = null;
 
             //find out the type
             Type type = model.GetType();
         
             //get the property information based on the type
-            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(model.GetAskGuidPropertyName());
+            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(model.GetIdPropertyName());
         
             //find the property type
             Type propertyType = propertyInfo.PropertyType;
         
             //Set the value of the property
-            guid = (string)propertyInfo.GetValue(model);
+            id = (int?)propertyInfo.GetValue(model);
 
-            return guid;
+            return id;
         }
 
         public ActionResult<T> Create(T model)
@@ -86,26 +87,27 @@ namespace Brash.Infrastructure.Sqlite
                 , Status = ActionStatus.INFORMATION
             };
 
-            string modelGuid = Guid.NewGuid().ToString();
-            SetGuid(modelGuid, model);
-
-            var recordGuid = PerformInsert(model);
-            if (recordGuid.Equals(modelGuid))
+            var id = PerformInsert(model);
+            if (id > 0)
             {
+                SetId(id, model);
                 var fetchResult = Fetch(model);
                 if (fetchResult.Status == ActionStatus.SUCCESS)
                 {
                     result.Model = fetchResult.Model;
-                    result.UpdateStatus(ActionStatus.SUCCESS, $"Record created. ({GetGuid(result.Model)})");
+                    result.UpdateStatus(ActionStatus.SUCCESS, $"Record created. ({GetId(result.Model)})");
+                    Logger.Information(result.Message);
                 }
                 else
                 {
                     result.UpdateStatus(ActionStatus.ERROR, "Record creation failed.");
+                    Logger.Error(result.Message);
                 }
             }
             else
             {
                 result.UpdateStatus(ActionStatus.ERROR, "Record creation failed. (fetch failure)");
+                Logger.Error(result.Message);
             }
 
             return result;
@@ -123,16 +125,19 @@ namespace Brash.Infrastructure.Sqlite
             if (models.Count() == 1)
             {
                 result.UpdateStatus(ActionStatus.SUCCESS, "Record updated.");
+                Logger.Information(result.Message);
                 result.Model = models.FirstOrDefault();
             }
             else if (models.Count() > 1)
             {
                 result.UpdateStatus(ActionStatus.ERROR, "More than 1 record found.");
+                Logger.Error(result.Message);
                 result.Model = models.FirstOrDefault();
             }
             else if (models.Count() == 0)
             {
                 result.UpdateStatus(ActionStatus.ERROR, "Record not found.");
+                Logger.Error(result.Message);
             }
 
             return result;
@@ -217,17 +222,18 @@ namespace Brash.Infrastructure.Sqlite
             return result;
         }
 
-        private string PerformInsert(T model)
+        private int? PerformInsert(T model)
         {
-            string guid;
+            int? id;
 
             using (var connection = GetDatabaseConnection())
             {
                 connection.Open();
-                guid = connection.Query<string>(RepositorySql.GetCreateStatement(), model).First();
+                Logger.Verbose(RepositorySql.GetCreateStatement());
+                id = connection.Query<int>(RepositorySql.GetCreateStatement(), model).First();
             }
 
-            return guid;
+            return id;
         }
 
         private int PerformUpdate(T model)
@@ -237,6 +243,7 @@ namespace Brash.Infrastructure.Sqlite
             using (var connection = GetDatabaseConnection())
             {
                 connection.Open();
+                Logger.Verbose(RepositorySql.GetUpdateStatement());
                 rows = connection.Execute(RepositorySql.GetUpdateStatement(), model);
             }
 
@@ -250,6 +257,7 @@ namespace Brash.Infrastructure.Sqlite
             using (var connection = GetDatabaseConnection())
             {
                 connection.Open();
+                Logger.Verbose(RepositorySql.GetDeleteStatement());
                 rows = connection.Execute(RepositorySql.GetDeleteStatement(), model);
             }
 
@@ -263,6 +271,7 @@ namespace Brash.Infrastructure.Sqlite
             using (var connection = GetDatabaseConnection())
             {
                 connection.Open();
+                Logger.Verbose(RepositorySql.GetFetchStatement());
                 models = connection.Query<T>(RepositorySql.GetFetchStatement(), model);
             }
 
@@ -276,6 +285,7 @@ namespace Brash.Infrastructure.Sqlite
             using (var connection = GetDatabaseConnection())
             {
                 connection.Open();
+                Logger.Verbose($"{RepositorySql.GetFindStatement()} {whereClause}");
                 models = connection.Query<T>($"{RepositorySql.GetFindStatement()} {whereClause}");
             }
 
