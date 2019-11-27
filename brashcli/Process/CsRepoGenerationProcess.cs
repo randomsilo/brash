@@ -75,7 +75,10 @@ namespace brashcli.Process
         private void ReadDataJsonFile()
         {
 			string json = System.IO.File.ReadAllText(_options.FilePath);
-			_domainStructure = JsonConvert.DeserializeObject<DomainStructure>(json);
+			_domainStructure = JsonConvert.DeserializeObject<DomainStructure>(json, new JsonSerializerSettings()
+			{
+				MissingMemberHandling = MissingMemberHandling.Ignore
+			});
 			_logger.Information($"Domain: {_domainStructure.Domain}, Structures: {_domainStructure.Structure.Count}");
         }
 
@@ -97,7 +100,7 @@ namespace brashcli.Process
 
 			MakeRepoFileCs(parent, entry);
 			MakeRepoSqlFileCs(parent, entry);
-			MakeServiceFileCs(parent, entry);
+			//MakeServiceFileCs(parent, entry);
 			
 			if (entry.Children != null && entry.Children.Count > 0)
 			{
@@ -152,7 +155,7 @@ namespace brashcli.Process
 			lines.Append( "\n{");
 			lines.Append($"\n\tpublic class {entityName}Repository : {idPattern}Repository<{entityName}>");
 			lines.Append( "\n\t{");
-			lines.Append($"\n\t\tpublic {entityName}Repository(IManageDatabase databaseManager, AAskIdRepositorySql repositorySql, ILogger logger) : base(databaseManager, repositorySql, logger)");
+			lines.Append($"\n\t\tpublic {entityName}Repository(IManageDatabase databaseManager, A{idPattern}RepositorySql repositorySql, ILogger logger) : base(databaseManager, repositorySql, logger)");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\t");
 			lines.Append( "\n\t\t}");
@@ -543,7 +546,32 @@ namespace brashcli.Process
 			}
 
 			statement.Append($"\n\t\t\t);");
-			statement.Append($"\n\t\t\tSELECT last_insert_rowid();");
+
+			
+			if(entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION))
+			{
+				StringBuilder pkColumnsCsv = new StringBuilder();
+				addComma = false;
+				foreach( var column in _primaryKeyColumns)
+				{
+					if (addComma)
+						pkColumnsCsv.Append(", ");
+
+					pkColumnsCsv.Append($"{column}");
+					addComma = true;
+				}
+				string selectGuid = $"SELECT {pkColumnsCsv.ToString()} FROM {entity.Name} WHERE rowid = last_insert_rowid();";
+				statement.Append($"\n\t\t\t{selectGuid}");
+			}
+			else if (entity.IdPattern == null || entity.IdPattern.Equals(Global.IDPATTERN_ASKID))
+			{
+				statement.Append($"\n\t\t\tSELECT last_insert_rowid();");
+			}
+			else
+			{
+				throw new NotImplementedException($"Id Pattern: {entity.IdPattern}, not supported.");
+			}
+			
 
 			return statement.ToString();
 		}

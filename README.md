@@ -56,15 +56,60 @@ Each object represents a table.
 * [x] Name - is the table name
 * [x] IdPattern - is the id pattern used to make/manage a row
   * [x] AskId - (Default) Anonymous Surrogate Key Id pattern uses an autoincrementing column called _table_Id as the primary key
+    * [x] Database
+    * [x] Domain
+    * [x] Repository Sql
+    * [x] Repository
+    * [ ] Service
+    * [ ] Tests
+    * [ ] Api
+    * [ ] Api Client
   * [ ] AskGuid - Anonymous Surrogate Key Guid pattern uses a string column called _table_Guid as the primary key
+    * [x] Database
+    * [x] Domain
+    * [x] Repository Sql
+    * [x] Repository
+    * [ ] Service
+    * [ ] Tests
+    * [ ] Api
+    * [ ] Api Client
   * [ ] AskVersion - Anonymous Surrogate Key Version pattern uses an id, guid, version, and current indicator column
+    * [x] Database
+    * [x] Domain
+    * [ ] Repository Sql
+    * [ ] Repository
+    * [ ] Service
+    * [ ] Tests
+    * [ ] Api
+    * [ ] Api Client
 * [ ] TrackingPattern - is a set columns to be added to the table for tracking purposes
-  * [ ] None - (Default) No additional fields
+  * [x] None - (Default) No additional fields
   * [ ] Audit - fields CreatedBy, CreatedOn, UpdatedBy, UpdatedOn
+    * [ ] Database
+    * [ ] Domain
+    * [ ] Repository Sql
+    * [ ] Repository
+    * [ ] Service
+    * [ ] Tests
+    * [ ] Api
+    * [ ] Api Client
   * [ ] AuditPreserve - CreatedBy, CreatedOn, UpdatedBy, UpdatedOn, IsDeleted
+    * [ ] Database
+    * [ ] Domain
+    * [ ] Repository Sql
+    * [ ] Repository
+    * [ ] Service
+    * [ ] Tests
+    * [ ] Api
+    * [ ] Api Client
   * [ ] AuditVersion - fields RecordState (Created, Updated, Deleted, Restored), PerformedBy, PeformedOn, PerformedReason
-  * [ ] Session - TBD, SessionGuidRef, join to Session table with user, ip address, and location information
-  * [ ] Device - TBD, DeviceGuidRef, join to Device table with mobile device information like serial number, ip address, os, etc..
+    * [ ] Database
+    * [ ] Repository Sql
+    * [ ] Repository
+    * [ ] Service
+    * [ ] Tests
+    * [ ] Api
+    * [ ] Api Client
 * [x] AdditionalPatterns - an array of Pattern names to add additional columns and behavior 
   * [x] Choice - fields ChoiceName, OrderNo, IsDisabled
 * [x] Fields - an array of field definitions to make addional columns on the table
@@ -130,6 +175,26 @@ They can each have extensions and children.
       * [ ] Find By AskId Parent
       * [ ] Find By AskGuid Parent
       * [ ] Find By AskVersion Parent
+  * [ ] AskGuid
+    * [ ] List 
+    * [ ] Get
+    * [ ] Create
+    * [ ] Update
+    * [ ] Delete
+    * [ ] Referential
+      * [ ] Find By AskId Parent
+      * [ ] Find By AskGuid Parent
+      * [ ] Find By AskVersion Parent
+  * [ ] AskVersion
+    * [ ] List 
+    * [ ] Get
+    * [ ] Create
+    * [ ] Update
+    * [ ] Delete
+    * [ ] Referential
+      * [ ] Find By AskId Parent
+      * [ ] Find By AskGuid Parent
+      * [ ] Find By AskVersion Parent
 
 
 
@@ -158,10 +223,10 @@ sudo apt-get install dotnet-sdk-3.0
 ### Add Local Brash Reference
 
 ```bash
-# Open the each csproj and remove nuget package then
-dotnet add MyProject.Domain/MyProject.Domain.csproj reference ../brash/Brash/Brash.csproj
-dotnet add MyProject.Infrastructure/MyProject.Infrastructure.csproj reference ../brash/Brash/Brash.csproj
-dotnet add MyProject.Infrastructure.Test/MyProject.Infrastructure.Test.csproj reference ../brash/Brash/Brash.csproj
-dotnet add MyProject.Api/MyProject.Api.csproj reference ../brash/Brash/Brash.csproj
+# Open the each csproj and remove brash nuget package then
+dotnet add Strawman.Domain/Strawman.Domain.csproj reference ../brash/Brash/Brash.csproj
+dotnet add Strawman.Infrastructure/Strawman.Infrastructure.csproj reference ../brash/Brash/Brash.csproj
+dotnet add Strawman.Infrastructure.Test/Strawman.Infrastructure.Test.csproj reference ../brash/Brash/Brash.csproj
+dotnet add Strawman.Api/Strawman.Api.csproj reference ../brash/Brash/Brash.csproj
 
 ```

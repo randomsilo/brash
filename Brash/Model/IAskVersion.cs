@@ -2,7 +2,7 @@ using System;
 
 namespace Brash.Model
 {
-    public interface IAskIdVersion
+    public interface IAskVersion
     {
         string GetAskVersionPropertyName();
     }

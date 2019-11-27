@@ -66,7 +66,10 @@ namespace brashcli.Process
         private void ReadDataJsonFile()
         {
 			string json = System.IO.File.ReadAllText(_options.FilePath);
-			_domainStructure = JsonConvert.DeserializeObject<DomainStructure>(json);
+			_domainStructure = JsonConvert.DeserializeObject<DomainStructure>(json, new JsonSerializerSettings()
+			{
+				MissingMemberHandling = MissingMemberHandling.Ignore
+			});
 			_logger.Information($"Domain: {_domainStructure.Domain}, Structures: {_domainStructure.Structure.Count}");
         }
 
@@ -183,8 +186,6 @@ namespace brashcli.Process
 			ProcessReferences( entry);	
 			ProcessTrackingPattern( entry);
 
-			// TODO Add extension holders
-			// TODO Add children holders
 		}
 
 		private void ProcessIdPattern(Structure entry)
@@ -196,7 +197,7 @@ namespace brashcli.Process
 					_interfaces.Add("IAskGuid");
 
 					_fields.Append("\n\t\t");
-					_fields.Append($"public Guid? {entry.Name}Guid");
+					_fields.Append($"public string {entry.Name}Guid");
 					_fields.Append(" { get; set; }");
 
 					_interfaceImplementations.Append("\n\t\tpublic string GetAskGuidPropertyName()");
@@ -252,7 +253,7 @@ namespace brashcli.Process
 						_interfaces.Add("IAskGuidChild");
 
 						_fields.Append("\n\t\t");
-						_fields.Append($"public Guid? {parent.Name}Guid");
+						_fields.Append($"public string {parent.Name}Guid");
 						_fields.Append(" { get; set; }");
 
 
@@ -266,7 +267,7 @@ namespace brashcli.Process
 						_interfaces.Add("IAskVersionChild");
 
 						_fields.Append("\n\t\t");
-						_fields.Append($"public Guid? {parent.Name}Guid");
+						_fields.Append($"public string {parent.Name}Guid");
 						_fields.Append(" { get; set; }");
 
 						_fields.Append("\n\t\t");
@@ -389,13 +390,13 @@ namespace brashcli.Process
 			{
 				case Global.IDPATTERN_ASKGUID:
 					_fields.Append("\n\t\t");
-					_fields.Append($"public string? {reference.ColumnName}GuidRef");
+					_fields.Append($"public string {reference.ColumnName}GuidRef");
 					_fields.Append(" { get; set; }");
 					
 					break;
 				case Global.IDPATTERN_ASKVERSION:
 					_fields.Append("\n\t\t");
-					_fields.Append($"public string? {reference.ColumnName}GuidRef");
+					_fields.Append($"public string {reference.ColumnName}GuidRef");
 					_fields.Append(" { get; set; }");
 
 					_fields.Append("\n\t\t");
@@ -421,7 +422,7 @@ namespace brashcli.Process
 				{
 					case Global.TRACKINGPATTERN_AUDIT:
 						_fields.Append("\n\t\t");
-						_fields.Append($"public string? CreatedBy");
+						_fields.Append($"public string CreatedBy");
 						_fields.Append(" { get; set; }");
 
 						_fields.Append("\n\t\t");
@@ -429,7 +430,7 @@ namespace brashcli.Process
 						_fields.Append(" { get; set; }");
 
 						_fields.Append("\n\t\t");
-						_fields.Append($"public string? UpdatedBy");
+						_fields.Append($"public string UpdatedBy");
 						_fields.Append(" { get; set; }");
 
 						_fields.Append("\n\t\t");
@@ -438,7 +439,7 @@ namespace brashcli.Process
 						break;
 					case Global.TRACKINGPATTERN_AUDITPRESERVE:
 						_fields.Append("\n\t\t");
-						_fields.Append($"public string? CreatedBy");
+						_fields.Append($"public string CreatedBy");
 						_fields.Append(" { get; set; }");
 
 						_fields.Append("\n\t\t");
@@ -446,7 +447,7 @@ namespace brashcli.Process
 						_fields.Append(" { get; set; }");
 
 						_fields.Append("\n\t\t");
-						_fields.Append($"public string? UpdatedBy");
+						_fields.Append($"public string UpdatedBy");
 						_fields.Append(" { get; set; }");
 
 						_fields.Append("\n\t\t");
@@ -459,11 +460,11 @@ namespace brashcli.Process
 						break;
 					case Global.TRACKINGPATTERN_VERSION:
 						_fields.Append("\n\t\t");
-						_fields.Append($"public string? RecordState");
+						_fields.Append($"public string RecordState");
 						_fields.Append(" { get; set; }");
 
 						_fields.Append("\n\t\t");
-						_fields.Append($"public string? PerformedBy");
+						_fields.Append($"public string PerformedBy");
 						_fields.Append(" { get; set; }");
 
 						_fields.Append("\n\t\t");
@@ -471,7 +472,7 @@ namespace brashcli.Process
 						_fields.Append(" { get; set; }");
 
 						_fields.Append("\n\t\t");
-						_fields.Append($"public string? PerformedReason");
+						_fields.Append($"public string PerformedReason");
 						_fields.Append(" { get; set; }");
 						break;
 					default:

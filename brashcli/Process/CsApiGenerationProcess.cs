@@ -68,7 +68,10 @@ namespace brashcli.Process
         private void ReadDataJsonFile()
         {
 			string json = System.IO.File.ReadAllText(_options.FilePath);
-			_domainStructure = JsonConvert.DeserializeObject<DomainStructure>(json);
+			_domainStructure = JsonConvert.DeserializeObject<DomainStructure>(json, new JsonSerializerSettings()
+			{
+				MissingMemberHandling = MissingMemberHandling.Ignore
+			});
 			_logger.Information($"Domain: {_domainStructure.Domain}, Structures: {_domainStructure.Structure.Count}");
         }
 
