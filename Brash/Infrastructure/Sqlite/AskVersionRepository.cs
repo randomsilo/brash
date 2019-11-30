@@ -223,7 +223,14 @@ namespace Brash.Infrastructure.Sqlite
                 SetVersion(GetVersion(model)+1, model);
 
                 result.Model = PerformFetch(model).FirstOrDefault();
-                result.UpdateStatus(ActionStatus.SUCCESS, "Record updated.");
+                if (result.Model != null)
+                {
+                    result.UpdateStatus(ActionStatus.SUCCESS, "Record updated.");
+                }
+                else
+                {
+                    result.UpdateStatus(ActionStatus.ERROR, "Record update failed.  Unable to find new record version.");
+                }
             }
             else
             {
@@ -307,7 +314,7 @@ namespace Brash.Infrastructure.Sqlite
             {
                 connection.Open();
                 Logger.Verbose(RepositorySql.GetUpdateStatement());
-                Logger.Verbose($"ID: {GetId(model)}, GUID: {GetGuid(model)}, GUID: {GetVersion(model)}");
+                Logger.Verbose($"ID: {GetId(model)}, GUID: {GetGuid(model)}, Version: {GetVersion(model)}");
                 rows = connection.Execute(RepositorySql.GetUpdateStatement(), model);
             }
 
@@ -322,6 +329,7 @@ namespace Brash.Infrastructure.Sqlite
             {
                 connection.Open();
                 Logger.Verbose(RepositorySql.GetDeleteStatement());
+                Logger.Verbose($"ID: {GetId(model)}, GUID: {GetGuid(model)}, Version: {GetVersion(model)}");
                 rows = connection.Execute(RepositorySql.GetDeleteStatement(), model);
             }
 
@@ -336,6 +344,7 @@ namespace Brash.Infrastructure.Sqlite
             {
                 connection.Open();
                 Logger.Verbose(RepositorySql.GetFetchStatement());
+                Logger.Verbose($"ID: {GetId(model)}, GUID: {GetGuid(model)}, Version: {GetVersion(model)}");
                 models = connection.Query<T>(RepositorySql.GetFetchStatement(), model);
             }
 

@@ -69,8 +69,8 @@ Each object represents a table.
     * [x] Domain
     * [x] Repository Sql
     * [x] Repository
-    * [ ] Service
-    * [ ] Tests
+    * [x] Service
+    * [x] Tests
     * [ ] Api
     * [ ] Api Client
   * [ ] AskVersion - Anonymous Surrogate Key Version pattern uses an id, guid, version, and current indicator column
@@ -78,8 +78,8 @@ Each object represents a table.
     * [x] Domain
     * [x] Repository Sql
     * [x] Repository
-    * [ ] Service
-    * [ ] Tests
+    * [x] Service
+    * [x] Tests
     * [ ] Api
     * [ ] Api Client
 * [ ] TrackingPattern - is a set columns to be added to the table for tracking purposes
@@ -110,7 +110,7 @@ Each object represents a table.
     * [ ] Tests
     * [ ] Api
     * [ ] Api Client
-* [x] AdditionalPatterns - an array of Pattern names to add additional columns and behavior 
+* [x] AdditionalPatterns - an array of Pattern names to add additional columns and behavior
   * [x] Choice - fields ChoiceName, OrderNo, IsDisabled
 * [x] Fields - an array of field definitions to make addional columns on the table
   * [x] Name - name of the column
@@ -166,7 +166,7 @@ They can each have extensions and children.
 
 * [ ] Api
   * [ ] AskId
-    * [x] List 
+    * [x] List
     * [x] Get
     * [x] Create
     * [x] Update
@@ -176,7 +176,7 @@ They can each have extensions and children.
       * [ ] Find By AskGuid Parent
       * [ ] Find By AskVersion Parent
   * [ ] AskGuid
-    * [ ] List 
+    * [ ] List
     * [ ] Get
     * [ ] Create
     * [ ] Update
@@ -186,7 +186,7 @@ They can each have extensions and children.
       * [ ] Find By AskGuid Parent
       * [ ] Find By AskVersion Parent
   * [ ] AskVersion
-    * [ ] List 
+    * [ ] List
     * [ ] Get
     * [ ] Create
     * [ ] Update
@@ -195,9 +195,6 @@ They can each have extensions and children.
       * [ ] Find By AskId Parent
       * [ ] Find By AskGuid Parent
       * [ ] Find By AskVersion Parent
-
-
-
 
 ## Suggested Tools
 
