@@ -151,7 +151,7 @@ namespace brashcli.Process
 			}
 			else
 			{
-				throw new NotImplementedException($"{idPattern} has not been implemented.");
+				//throw new NotImplementedException($"{idPattern} has not been implemented.");
 			}
 
 			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
