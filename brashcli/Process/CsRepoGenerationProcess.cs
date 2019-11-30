@@ -100,7 +100,7 @@ namespace brashcli.Process
 
 			MakeRepoFileCs(parent, entry);
 			MakeRepoSqlFileCs(parent, entry);
-			//MakeServiceFileCs(parent, entry);
+			MakeServiceFileCs(parent, entry);
 			
 			if (entry.Children != null && entry.Children.Count > 0)
 			{
@@ -165,20 +165,20 @@ namespace brashcli.Process
             return lines.ToString();
         }
 
-		public string MakeServiceFilePath(Structure entry)
+		public string MakeServiceFilePath(Structure entity)
 		{
-			return System.IO.Path.Combine(_pathServiceDirectory, entry.Name + "Service.cs");
+			return System.IO.Path.Combine(_pathServiceDirectory, entity.Name + "Service.cs");
 		}
 
-		private void MakeServiceFileCs(Structure parent, Structure entry)
+		private void MakeServiceFileCs(Structure parent, Structure entity)
 		{
-			string fileNamePath = MakeServiceFilePath(entry);
+			string fileNamePath = MakeServiceFilePath(entity);
 			StringBuilder lines = new StringBuilder();
 
 			lines.Append( TplCsService(
 				_domainStructure.Domain
-				, entry.Name
-				, entry.IdPattern ?? "AskId"
+				, parent
+				, entity
 			));
 
 			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
@@ -186,24 +186,60 @@ namespace brashcli.Process
 
 		public string TplCsService(
 			string domain
-			, string entityName
-			, string idPattern
+			, Structure parent
+			, Structure entity
 			)
         {
+			string idPattern = entity.IdPattern ?? Global.IDPATTERN_ASKID;
             StringBuilder lines = new StringBuilder();
 
 			lines.Append($"\nusing Brash.Infrastructure;");
 			lines.Append($"\nusing Serilog;");
 			lines.Append($"\nusing {domain}.Domain.Model;");
+			lines.Append($"\nusing {domain}.Domain.Service;");
 			lines.Append($"\n");
 			lines.Append($"\nnamespace {domain}.Infrastructure.Sqlite.Service");
 			lines.Append( "\n{");
-			lines.Append($"\n\tpublic class {entityName}Service : A{idPattern}Service<{entityName}>");
+			lines.Append($"\n\tpublic class {entity.Name}Service : I{entity.Name}Service");
 			lines.Append( "\n\t{");
-			lines.Append($"\n\t\tpublic {entityName}Service(I{idPattern}Repository<{entityName}> repository, ILogger logger) : base(repository, logger)");
-			lines.Append( "\n\t\t{");
-			lines.Append($"\n\t\t\t");
+			lines.Append($"\n\t\tprotected I{idPattern}Repository<{entity.Name}> Repository"); 
+			lines.Append( "\n\t\t{ ");
+			lines.Append( "\n\t\t\tget; private set;"); 
 			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t\tprotected ILogger Logger { get; set; }");  
+			lines.Append( "\n");
+			lines.Append($"\n\t\tpublic {entity.Name}Service(I{idPattern}Repository<{entity.Name}> repository, ILogger logger)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\tRepository = repository;");
+            lines.Append($"\n\t\t\tLogger = logger;");
+			lines.Append( "\n\t\t}");
+
+			lines.Append($"\n\n\t\tpublic ActionResult<{entity.Name}> Create({entity.Name} model)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\treturn Repository.Create(model);");
+			lines.Append( "\n\t\t}");
+
+			lines.Append($"\n\n\t\tpublic ActionResult<{entity.Name}> Fetch({entity.Name} model)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\treturn Repository.Fetch(model);");
+			lines.Append( "\n\t\t}");
+
+			lines.Append($"\n\n\t\tpublic ActionResult<{entity.Name}> Update({entity.Name} model)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\treturn Repository.Update(model);");
+			lines.Append( "\n\t\t}");
+
+			lines.Append($"\n\n\t\tpublic ActionResult<{entity.Name}> Delete({entity.Name} model)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\treturn Repository.Delete(model);");
+			lines.Append( "\n\t\t}");
+
+			lines.Append($"\n\n\t\tpublic QueryResult<{entity.Name}> FindWhere(string where)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\treturn Repository.FindWhere(where);");
+			lines.Append( "\n\t\t}");
+
+
 			lines.Append( "\n\t}");
 			lines.Append( "\n}");
 

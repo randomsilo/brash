@@ -17,11 +17,13 @@ namespace brashcli.Process
         private CsDomainGeneration _options;
 		private string _pathProject;
 		private string _pathDomainModel;
+		private string _pathDomainService;
 		private DomainStructure _domainStructure;
 		private Dictionary<string,string> _tablePrimaryKeyDataType = new Dictionary<string, string>();
 		StringBuilder _fields = new StringBuilder();
 		StringBuilder _interfaceImplementations = new StringBuilder();
 		List<string> _interfaces = new List<string>();
+		List<string> _serviceInterfaces = new List<string>();
 		
         public CsDomainGenerationProcess(ILogger logger, CsDomainGeneration options)
         {
@@ -40,8 +42,8 @@ namespace brashcli.Process
                 try 
                 {
 					ReadDataJsonFile();
-                    MakeDomainModelDirectory();
-					CreateDomainModelFiles();
+                    MakeDomainDirectories();
+					CreateDomainFiles();
                 }
                 catch(Exception exception)
                 {
@@ -56,11 +58,14 @@ namespace brashcli.Process
             return returnCode;
         }
 
-        private void MakeDomainModelDirectory()
+        private void MakeDomainDirectories()
         {
 			var domainDirectory = _domainStructure.Domain + "." + "Domain";
 			_pathDomainModel = System.IO.Path.Combine(_pathProject, domainDirectory, "Model");
 			System.IO.Directory.CreateDirectory(_pathDomainModel);
+
+			_pathDomainService = System.IO.Path.Combine(_pathProject, domainDirectory, "Service");
+			System.IO.Directory.CreateDirectory(_pathDomainService);
         }
 
         private void ReadDataJsonFile()
@@ -73,29 +78,29 @@ namespace brashcli.Process
 			_logger.Information($"Domain: {_domainStructure.Domain}, Structures: {_domainStructure.Structure.Count}");
         }
 
-		private void CreateDomainModelFiles()
+		private void CreateDomainFiles()
 		{
 			_logger.Debug("CreateDomainModelFiles");
 			
 			foreach( var entity in _domainStructure.Structure)
 			{
-				MakeDomainModelFile(null, entity);
+				MakeDomainFiles(null, entity);
 			}
 		}
 
-		private void MakeDomainModelFile( Structure parent, Structure entity)
+		private void MakeDomainFiles( Structure parent, Structure entity)
 		{
 			_logger.Debug($"{entity.Name}");
 			if (parent != null)
 				_logger.Debug($"\t Parent: {parent.Name}");
 
-			MakeDomainModelFileCs(parent, entity);
+			MakeDomainFilesCs(parent, entity);
 			
 			if (entity.Children != null && entity.Children.Count > 0)
 			{
 				foreach( var child in entity.Children)
 				{
-					MakeDomainModelFile(entity, child);
+					MakeDomainFiles(entity, child);
 				}
 			}
 			
@@ -103,25 +108,38 @@ namespace brashcli.Process
 			{
 				foreach( var extension in entity.Extensions)
 				{
-					MakeDomainModelFile(entity, extension);
+					MakeDomainFiles(entity, extension);
 				}
 			}
 		}
 
-		public string MakeEntryFilePath(Structure entity)
+		public string MakeEntityFilePath(Structure entity)
 		{
 			return System.IO.Path.Combine(_pathDomainModel, entity.Name + ".cs");
 		}
 
-		private void MakeDomainModelFileCs(Structure parent, Structure entity)
+		public string MakeServiceFilePath(Structure entity)
 		{
-			string fileNamePath = MakeEntryFilePath(entity);
-			StringBuilder lines = new StringBuilder();
+			return System.IO.Path.Combine(_pathDomainService, "I" + entity.Name + "Service.cs");
+		}
+
+		private void MakeDomainFilesCs(Structure parent, Structure entity)
+		{
+			string domainModelFilePath = MakeEntityFilePath(entity);
+			StringBuilder domainModelLines = new StringBuilder();
 
 			SaveTableIdDataType(entity);
 			AnalyzeStructure(parent, entity);
+			MakeDomainModel(parent, entity);
+			MakeDomainService(parent, entity);
+		}
 
-			lines.Append( TplCsDomain(
+		private void MakeDomainModel(Structure parent, Structure entity)
+		{
+			string domainModelFilePath = MakeEntityFilePath(entity);
+			StringBuilder domainModelLines = new StringBuilder();
+
+			domainModelLines.Append( TplCsDomainModel(
 				_domainStructure.Domain
 				, entity.Name
 				, GetInterfaces()
@@ -130,10 +148,25 @@ namespace brashcli.Process
 				, GetConstructor(entity)
 			));
 
-			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
+			System.IO.File.WriteAllText( domainModelFilePath, domainModelLines.ToString());
 		}
 
-		public string TplCsDomain(
+		private void MakeDomainService(Structure parent, Structure entity)
+		{
+			string domainServiceFilePath = MakeServiceFilePath(entity);
+			StringBuilder domainServiceLines = new StringBuilder();
+
+			domainServiceLines.Append( TplCsDomainService(
+				_domainStructure.Domain
+				, parent
+				, entity
+				, GetServiceInterfaces()
+			));
+
+			System.IO.File.WriteAllText( domainServiceFilePath, domainServiceLines.ToString());
+		}
+
+		private string TplCsDomainModel(
 			string domain
 			, string entityName
 			, string interfaces
@@ -167,6 +200,47 @@ namespace brashcli.Process
             return lines.ToString();
         }
 
+		private string TplCsDomainService(
+			string domain
+			, Structure parent
+			, Structure entity
+			, string interfaces
+			)
+        {
+            StringBuilder lines = new StringBuilder();
+
+			lines.Append($"\nusing System;");
+			lines.Append($"\nusing System.Collections;");
+			lines.Append($"\nusing System.Collections.Generic;");
+			lines.Append($"\nusing System.Linq;");
+			lines.Append($"\nusing Brash.Infrastructure;");
+			lines.Append($"\nusing Brash.Model;");
+			lines.Append($"\nusing {domain}.Domain.Model;");
+			lines.Append($"\n");
+			lines.Append($"\nnamespace {domain}.Domain.Service");
+			lines.Append( "\n{");
+			if (string.IsNullOrWhiteSpace(interfaces)) {
+				lines.Append($"\n\tpublic interface I{entity.Name}Service ");
+			}
+			else
+			{
+				lines.Append($"\n\tpublic interface I{entity.Name}Service : {interfaces}");
+			}
+			
+			lines.Append( "\n\t{");
+
+			lines.Append($"\n\t\tActionResult<{entity.Name}> Create({entity.Name} model);");
+        	lines.Append($"\n\t\tActionResult<{entity.Name}> Fetch({entity.Name} model);");
+        	lines.Append($"\n\t\tActionResult<{entity.Name}> Update({entity.Name} model);");
+        	lines.Append($"\n\t\tActionResult<{entity.Name}> Delete({entity.Name} model);");
+        	lines.Append($"\n\t\tQueryResult<{entity.Name}> FindWhere(string where);");
+
+			lines.Append( "\n\t}");
+			lines.Append( "\n}");
+
+            return lines.ToString();
+        }
+
 		private void SaveTableIdDataType(Structure entity)
 		{
 			_tablePrimaryKeyDataType.Add(entity.Name, entity.IdPattern ?? Global.IDPATTERN_ASKID);
@@ -176,6 +250,7 @@ namespace brashcli.Process
 		{
 			// clear contents
 			_interfaces = new List<string>();
+			_serviceInterfaces = new List<string>();
 			_interfaceImplementations = new StringBuilder();
 			_fields = new StringBuilder();
 
@@ -526,6 +601,23 @@ namespace brashcli.Process
 
 			bool anInterfaceHasBeenAdded = false;
 			foreach( var interfaceName in _interfaces)
+			{
+				if (anInterfaceHasBeenAdded)
+					template.Append(", ");
+
+				template.Append(interfaceName);
+				anInterfaceHasBeenAdded = true;
+			}
+
+			return template.ToString();
+		}
+
+		private string GetServiceInterfaces()
+		{
+			StringBuilder template = new StringBuilder();
+
+			bool anInterfaceHasBeenAdded = false;
+			foreach( var interfaceName in _serviceInterfaces)
 			{
 				if (anInterfaceHasBeenAdded)
 					template.Append(", ");

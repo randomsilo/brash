@@ -60,8 +60,8 @@ Each object represents a table.
     * [x] Domain
     * [x] Repository Sql
     * [x] Repository
-    * [ ] Service
-    * [ ] Tests
+    * [x] Service
+    * [x] Tests
     * [ ] Api
     * [ ] Api Client
   * [ ] AskGuid - Anonymous Surrogate Key Guid pattern uses a string column called _table_Guid as the primary key
@@ -76,8 +76,8 @@ Each object represents a table.
   * [ ] AskVersion - Anonymous Surrogate Key Version pattern uses an id, guid, version, and current indicator column
     * [x] Database
     * [x] Domain
-    * [ ] Repository Sql
-    * [ ] Repository
+    * [x] Repository Sql
+    * [x] Repository
     * [ ] Service
     * [ ] Tests
     * [ ] Api

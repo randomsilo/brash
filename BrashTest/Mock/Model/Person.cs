@@ -18,7 +18,7 @@ namespace BrashTest.Mock.Model
 		public string MiddleName { get; set; }
 
         // Interface Implementations
-		public string GetAskIdPropertyName()
+		public string GetIdPropertyName()
 		{
 			return "PersonId";
 		}

@@ -94,29 +94,32 @@ namespace brashcli.Process
 			}
 		}
 
-		private void MakeFiles( Structure parent, Structure entry)
+		private void MakeFiles( Structure parent, Structure entity)
 		{
-			_logger.Debug($"{entry.Name}");
+			_logger.Debug($"{entity.Name}");
 			if (parent != null)
 				_logger.Debug($"\t Parent: {parent.Name}");
-
-			MakeFakerFileCs(parent, entry);
-			MakeRepoTestFileCs(parent, entry);
-			//MakeServiceTestFileCs(parent, entry);
 			
-			if (entry.Children != null && entry.Children.Count > 0)
+			SaveTableIdDataType(entity);
+			AnalyzeStructure(parent, entity);
+
+			MakeFakerFileCs(parent, entity);
+			MakeRepoTestFileCs(parent, entity);
+			MakeServiceTestFileCs(parent, entity);
+			
+			if (entity.Children != null && entity.Children.Count > 0)
 			{
-				foreach( var child in entry.Children)
+				foreach( var child in entity.Children)
 				{
-					MakeFiles(entry, child);
+					MakeFiles(entity, child);
 				}
 			}
 			
-			if (entry.Extensions != null && entry.Extensions.Count > 0)
+			if (entity.Extensions != null && entity.Extensions.Count > 0)
 			{
-				foreach( var extension in entry.Extensions)
+				foreach( var extension in entity.Extensions)
 				{
-					MakeFiles(entry, extension);
+					MakeFiles(entity, extension);
 				}
 			}
 		}
@@ -586,20 +589,20 @@ namespace brashcli.Process
 		}
 
 
-		public string MakeServiceTestFilePath(Structure entry)
+		public string MakeServiceTestFilePath(Structure entity)
 		{
-			return System.IO.Path.Combine(_pathServiceTestDirectory, entry.Name + "ServiceTest.cs");
+			return System.IO.Path.Combine(_pathServiceTestDirectory, entity.Name + "ServiceTest.cs");
 		}
 
-		private void MakeServiceTestFileCs(Structure parent, Structure entry)
+		private void MakeServiceTestFileCs(Structure parent, Structure entity)
 		{
-			string fileNamePath = MakeServiceTestFilePath(entry);
+			string fileNamePath = MakeServiceTestFilePath(entity);
 			StringBuilder lines = new StringBuilder();
 
 			lines.Append( TplCsServiceXtest(
 				_domainStructure.Domain
-				, entry.Name
-				, entry.IdPattern ?? "AskId"
+				, parent
+				, entity
 				, _pathProject
 			));
 
@@ -608,24 +611,24 @@ namespace brashcli.Process
 
 		public string TplCsServiceXtest(
 			string domain
-			, string entityName
-			, string idPattern
+			, Structure parent
+			, Structure entity
 			, string basePath
 			)
         {
             string template = null;
 
-			switch(idPattern)
+			switch(entity.IdPattern ?? Global.IDPATTERN_ASKID)
 			{
 				case Global.IDPATTERN_ASKGUID:
-					template = TplCsServiceXtestAskGuid(domain, entityName, idPattern, basePath);
+					template = TplCsServiceXtestAskGuid(domain, parent, entity, basePath);
 					break;
 				case Global.IDPATTERN_ASKVERSION:
-					template = TplCsServiceXtestAskVersion(domain, entityName, idPattern, basePath);
+					template = TplCsServiceXtestAskVersion(domain, parent, entity, basePath);
 					break;
 				case Global.IDPATTERN_ASKID:
 				default:
-					template = TplCsServiceXtestAskId(domain, entityName, idPattern, basePath);
+					template = TplCsServiceXtestAskId(domain, parent, entity, basePath);
 					break;
 			}
 
@@ -634,8 +637,8 @@ namespace brashcli.Process
 
 		public string TplCsServiceXtestAskId(
 			string domain
-			, string entityName
-			, string idPattern
+			, Structure parent
+			, Structure entity
 			, string projectPath
 			)
         {
@@ -655,7 +658,7 @@ namespace brashcli.Process
 			lines.Append($"\n");
 			lines.Append($"\nnamespace {domain}.Infrastructure.Test.Sqlite.Service");
 			lines.Append( "\n{");
-			lines.Append($"\n\tpublic class {entityName}ServiceTest");
+			lines.Append($"\n\tpublic class {entity.Name}ServiceTest");
 			lines.Append( "\n\t{");
 			lines.Append($"\n\t\tpublic string GetDatabase(string path, MethodBase methodBase)");
 			lines.Append( "\n\t\t{");
@@ -707,64 +710,64 @@ namespace brashcli.Process
 			lines.Append($"\n\t\t\tdatabaseManager.CreateDatabase();");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// - repository");
-			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}Repository = new {entityName}Repository(databaseManager, new {entityName}RepositorySql(), logger);");
-			lines.Append($"\n\t\t\tAssert.NotNull({entityName.ToLowerFirstChar()}Repository);");
+			lines.Append($"\n\t\t\tvar {entity.Name.ToLowerFirstChar()}Repository = new {entity.Name}Repository(databaseManager, new {entity.Name}RepositorySql(), logger);");
+			lines.Append($"\n\t\t\tAssert.NotNull({entity.Name.ToLowerFirstChar()}Repository);");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// - service");
-			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}Service = new {entityName}Service({entityName.ToLowerFirstChar()}Repository, logger);");
-			lines.Append($"\n\t\t\tAssert.NotNull({entityName.ToLowerFirstChar()}Service);");
+			lines.Append($"\n\t\t\tvar {entity.Name.ToLowerFirstChar()}Service = new {entity.Name}Service({entity.Name.ToLowerFirstChar()}Repository, logger);");
+			lines.Append($"\n\t\t\tAssert.NotNull({entity.Name.ToLowerFirstChar()}Service);");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// faker");
-			lines.Append($"\n\t\t\tServiceResult<{entityName}> serviceResult = null;");
-			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}Faker = new {entityName}Faker(databaseManager, logger);");
-			lines.Append($"\n\t\t\tAssert.NotNull({entityName.ToLowerFirstChar()}Faker);");
+			lines.Append($"\n\t\t\tActionResult<{entity.Name}> serviceResult = null;");
+			lines.Append($"\n\t\t\tvar {entity.Name.ToLowerFirstChar()}Faker = new {entity.Name}Faker(databaseManager, logger);");
+			lines.Append($"\n\t\t\tAssert.NotNull({entity.Name.ToLowerFirstChar()}Faker);");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// create");
-			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}CreateModel = {entityName.ToLowerFirstChar()}Faker.GetOne();");
-			lines.Append($"\n\t\t\tserviceResult = {entityName.ToLowerFirstChar()}Service.Create({entityName.ToLowerFirstChar()}CreateModel);");
-			lines.Append($"\n\t\t\tAssert.False(serviceResult.HasError());");
-			lines.Append($"\n\t\t\tAssert.True(serviceResult.WorkResult.Model.{entityName}Id > 0);");
+			lines.Append($"\n\t\t\tvar {entity.Name.ToLowerFirstChar()}CreateModel = {entity.Name.ToLowerFirstChar()}Faker.GetOne();");
+			lines.Append($"\n\t\t\tserviceResult = {entity.Name.ToLowerFirstChar()}Service.Create({entity.Name.ToLowerFirstChar()}CreateModel);");
+			lines.Append($"\n\t\t\tAssert.True(serviceResult.Status == ActionStatus.SUCCESS);");
+			lines.Append($"\n\t\t\tAssert.True(serviceResult.Model.{entity.Name}Id > 0);");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// use model with id");
-			lines.Append($"\n\t\t\t{entityName.ToLowerFirstChar()}CreateModel = serviceResult.WorkResult.Model;");
+			lines.Append($"\n\t\t\t{entity.Name.ToLowerFirstChar()}CreateModel = serviceResult.Model;");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// update");
-			lines.Append($"\n\t\t\tvar {entityName.ToLowerFirstChar()}UpdateModel = {entityName.ToLowerFirstChar()}Faker.GetOne();");
-			lines.Append($"\n\t\t\t{entityName.ToLowerFirstChar()}UpdateModel.{entityName}Id = {entityName.ToLowerFirstChar()}CreateModel.{entityName}Id;");
-			lines.Append($"\n\t\t\tserviceResult = {entityName.ToLowerFirstChar()}Service.Update({entityName.ToLowerFirstChar()}UpdateModel);");
-			lines.Append($"\n\t\t\tAssert.False(serviceResult.HasError());");
+			lines.Append($"\n\t\t\tvar {entity.Name.ToLowerFirstChar()}UpdateModel = {entity.Name.ToLowerFirstChar()}Faker.GetOne();");
+			lines.Append($"\n\t\t\t{entity.Name.ToLowerFirstChar()}UpdateModel.{entity.Name}Id = {entity.Name.ToLowerFirstChar()}CreateModel.{entity.Name}Id;");
+			lines.Append($"\n\t\t\tserviceResult = {entity.Name.ToLowerFirstChar()}Service.Update({entity.Name.ToLowerFirstChar()}UpdateModel);");
+			lines.Append($"\n\t\t\tAssert.True(serviceResult.Status == ActionStatus.SUCCESS);");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// delete");
-			lines.Append($"\n\t\t\tserviceResult = {entityName.ToLowerFirstChar()}Service.Delete({entityName.ToLowerFirstChar()}CreateModel);");
-			lines.Append($"\n\t\t\tAssert.False(serviceResult.HasError());");
+			lines.Append($"\n\t\t\tserviceResult = {entity.Name.ToLowerFirstChar()}Service.Delete({entity.Name.ToLowerFirstChar()}CreateModel);");
+			lines.Append($"\n\t\t\tAssert.True(serviceResult.Status == ActionStatus.SUCCESS);");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// fetch"); 
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// - make fakes");
-			lines.Append($"\n\t\t\tvar fakes = {entityName.ToLowerFirstChar()}Faker.GetMany(10);");
+			lines.Append($"\n\t\t\tvar fakes = {entity.Name.ToLowerFirstChar()}Faker.GetMany(10);");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// - add fakes to database");
 			lines.Append($"\n\t\t\tList<int?> ids = new List<int?>();");
 			lines.Append($"\n\t\t\tforeach (var f in fakes)");
 			lines.Append( "\n\t\t\t{");
-			lines.Append($"\n\t\t\t\tserviceResult = {entityName.ToLowerFirstChar()}Service.Create(f);");
+			lines.Append($"\n\t\t\t\tserviceResult = {entity.Name.ToLowerFirstChar()}Service.Create(f);");
 			lines.Append($"\n");
-			lines.Append($"\n\t\t\t\tAssert.False(serviceResult.HasError());");
-			lines.Append($"\n\t\t\t\tAssert.True(serviceResult.WorkResult.Model.{entityName}Id >= 0);");
-			lines.Append($"\n\t\t\t\tids.Add(serviceResult.WorkResult.Model.{entityName}Id);");
+			lines.Append($"\n\t\t\t\tAssert.True(serviceResult.Status == ActionStatus.SUCCESS);");
+			lines.Append($"\n\t\t\t\tAssert.True(serviceResult.Model.{entity.Name}Id >= 0);");
+			lines.Append($"\n\t\t\t\tids.Add(serviceResult.Model.{entity.Name}Id);");
 			lines.Append( "\n\t\t\t}");
 			lines.Append($"\n");
 			lines.Append($"\n\t\t\t// - get fakes from database");
 			lines.Append($"\n\t\t\tforeach(var id in ids)");
 			lines.Append( "\n\t\t\t{");
-			lines.Append($"\n\t\t\t\tvar model = new {entityName}()"); 
+			lines.Append($"\n\t\t\t\tvar model = new {entity.Name}()"); 
 			lines.Append( "\n\t\t\t\t{");
-			lines.Append($"\n\t\t\t\t\t{entityName}Id = id");
+			lines.Append($"\n\t\t\t\t\t{entity.Name}Id = id");
 			lines.Append( "\n\t\t\t\t};");
 			lines.Append($"\n");
-			lines.Append($"\n\t\t\t\tserviceResult = {entityName.ToLowerFirstChar()}Service.Fetch(model);");
-			lines.Append($"\n\t\t\t\tAssert.False(serviceResult.HasError());");
-			lines.Append($"\n\t\t\t\tAssert.True(serviceResult.WorkResult.Model.{entityName}Id >= 0);");
+			lines.Append($"\n\t\t\t\tserviceResult = {entity.Name.ToLowerFirstChar()}Service.Fetch(model);");
+			lines.Append($"\n\t\t\t\tAssert.True(serviceResult.Status == ActionStatus.SUCCESS);");
+			lines.Append($"\n\t\t\t\tAssert.True(serviceResult.Model.{entity.Name}Id >= 0);");
 			lines.Append( "\n\t\t\t}");
 			lines.Append( "\n\t\t}");
 			lines.Append($"\n");
@@ -776,8 +779,8 @@ namespace brashcli.Process
 
 		public string TplCsServiceXtestAskGuid(
 			string domain
-			, string entityName
-			, string idPattern
+			, Structure parent
+			, Structure entity
 			, string projectPath
 			)
         {
@@ -790,8 +793,8 @@ namespace brashcli.Process
 
 		public string TplCsServiceXtestAskVersion(
 			string domain
-			, string entityName
-			, string idPattern
+			, Structure parent
+			, Structure entity
 			, string projectPath
 			)
         {
@@ -813,9 +816,6 @@ namespace brashcli.Process
 		{
 			string fileNamePath = MakeFakerFilePath(entity);
 			StringBuilder lines = new StringBuilder();
-
-			SaveTableIdDataType(entity);
-			AnalyzeStructure(parent, entity);
 
 			lines.Append( TplCsFaker(
 				_domainStructure.Domain
