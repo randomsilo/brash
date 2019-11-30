@@ -631,6 +631,18 @@ namespace brashcli.Process
 
 		private string BuildUpdateStatement(Structure parent, Structure entity)
 		{
+			if (entity.IdPattern != null && entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION))
+			{
+				return BuildUpdateStatementVersioned(parent, entity);
+			}
+			else
+			{
+				return BuildUpdateStatementStandard(parent, entity);
+			}
+		}
+
+		private string BuildUpdateStatementStandard(Structure parent, Structure entity)
+		{
 			StringBuilder statement = new StringBuilder();
 			bool addComma = false;
 
@@ -672,6 +684,98 @@ namespace brashcli.Process
 				}
 				statement.Append($"\n\t\t\t\t)");
 			}
+
+			return statement.ToString();
+		}
+
+		private string BuildUpdateStatementVersioned(Structure parent, Structure entity)
+		{
+			StringBuilder statements = new StringBuilder();
+
+			statements.Append($"UPDATE {entity.Name}");
+			statements.Append($"\n\t\t\tSET");
+			statements.Append($"\n\t\t\t\tIsCurrent = 0");
+			statements.Append($"\n\t\t\tWHERE");
+			statements.Append($"\n\t\t\t\t{entity.Name}Id = IFNULL(@{entity.Name}Id,0)");
+
+			if (entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION))
+			{
+				statements.Append($"\n\t\t\t\tOR (");
+				bool addSeparator = false;
+				foreach( var column in _primaryKeyColumns)
+				{
+					statements.Append($"\n\t\t\t\t\t");
+					if (addSeparator)
+						statements.Append("AND ");
+
+					statements.Append($"{column} = @{column}");
+					addSeparator = true;
+				}
+				statements.Append($"\n\t\t\t\t);");
+			}
+
+			statements.Append($"\n\t\t\t");
+			statements.Append(BuildUpdateInsertStatement(parent, entity));
+
+			return statements.ToString();
+		}
+
+		private string BuildUpdateInsertStatement(Structure parent, Structure entity)
+		{
+			StringBuilder statement = new StringBuilder();
+			bool addComma = false;
+
+			statement.Append($"INSERT INTO {entity.Name} (");
+			statement.Append($"\n\t\t\t\t--- Columns");
+
+			addComma = false;
+			foreach( var column in _columns)
+			{
+				if (column.Equals($"{entity.Name}Id"))
+					continue;
+
+				statement.Append($"\n\t\t\t\t");
+				if (addComma)
+					statement.Append(", ");
+
+				statement.Append($"{column}");
+				addComma = true;
+			}
+
+			statement.Append($"\n\t\t\t) VALUES (");
+			
+			statement.Append($"\n\t\t\t\t--- Values");
+
+			addComma = false;
+			foreach( var column in _columns)
+			{
+				if (column.Equals($"{entity.Name}Id"))
+					continue;
+
+				statement.Append($"\n\t\t\t\t");
+				if (addComma)
+					statement.Append(", ");
+
+				// special overrides
+				if (column.Equals($"{entity.Name}RecordVersion"))
+				{
+					statement.Append($"(SELECT MAX(IFNULL({entity.Name}RecordVersion,0))+1 FROM {entity.Name} WHERE {entity.Name}Guid = @{entity.Name}Guid)");
+					continue;
+				}
+
+				if (column.Equals($"IsCurrent"))
+				{
+					statement.Append($"1 -- Force IsCurrent to 1 (true) ");
+					continue;
+				}
+				
+				// standard
+				statement.Append($"@{column}");
+				addComma = true;
+			}
+
+			statement.Append($"\n\t\t\t);");
+			statement.Append($"\n\t\t\tSELECT last_insert_rowid();");
 
 			return statement.ToString();
 		}

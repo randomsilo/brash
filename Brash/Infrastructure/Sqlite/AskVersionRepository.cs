@@ -78,6 +78,69 @@ namespace Brash.Infrastructure.Sqlite
             return id;
         }
 
+        public string GetGuid(T model)
+        {
+            string guid = null;
+
+            //find out the type
+            Type type = model.GetType();
+        
+            //get the property information based on the type
+            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(model.GetGuidPropertyName());
+        
+            //find the property type
+            Type propertyType = propertyInfo.PropertyType;
+        
+            //Set the value of the property
+            guid = (string)propertyInfo.GetValue(model);
+
+            return guid;
+        }
+
+        public decimal? GetVersion(T model)
+        {
+            decimal? version = null;
+
+            //find out the type
+            Type type = model.GetType();
+        
+            //get the property information based on the type
+            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(model.GetVersionPropertyName());
+        
+            //find the property type
+            Type propertyType = propertyInfo.PropertyType;
+        
+            //Set the value of the property
+            version = (decimal?)propertyInfo.GetValue(model);
+
+            return version;
+        }
+
+        public void SetVersion(decimal? version, T model)
+        {
+            // value object
+            object propertyVal = (object)version;
+
+            //find out the type
+            Type type = model.GetType();
+        
+            //get the property information based on the type
+            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(model.GetVersionPropertyName());
+        
+            //find the property type
+            Type propertyType = propertyInfo.PropertyType;
+            
+            //Convert.ChangeType does not handle conversion to nullable types
+            //if the property type is nullable, we need to get the underlying type of the property
+            var targetType = IsNullableType(propertyInfo.PropertyType) ? Nullable.GetUnderlyingType(propertyInfo.PropertyType) : propertyInfo.PropertyType;
+            
+            //Returns an System.Object with the specified System.Type and whose value is equivalent to the specified object.
+            propertyVal = Convert.ChangeType(propertyVal, targetType);
+        
+            //Set the value of the property
+            propertyInfo.SetValue(model, propertyVal, null);
+        }
+
         public ActionResult<T> Create(T model)
         {
             ActionResult<T> result = new ActionResult<T>()
@@ -151,16 +214,16 @@ namespace Brash.Infrastructure.Sqlite
                 , Status = ActionStatus.INFORMATION
             };
 
+            decimal? currentVersion = GetVersion(model);
             int rows = PerformUpdate(model);
-            if (rows == 1)
+            if (rows >= 1) // versioned records, multiple rows may be modified when setting IsCurrent to 0.
             {
+                // reset other id fields to force retreival of new record
+                SetId(0, model);
+                SetVersion(GetVersion(model)+1, model);
+
                 result.Model = PerformFetch(model).FirstOrDefault();
                 result.UpdateStatus(ActionStatus.SUCCESS, "Record updated.");
-            }
-            else if (rows > 1)
-            {
-                result.Model = PerformFetch(model).FirstOrDefault();
-                result.UpdateStatus(ActionStatus.ERROR, "More than 1 record updated.");
             }
             else
             {
@@ -244,6 +307,7 @@ namespace Brash.Infrastructure.Sqlite
             {
                 connection.Open();
                 Logger.Verbose(RepositorySql.GetUpdateStatement());
+                Logger.Verbose($"ID: {GetId(model)}, GUID: {GetGuid(model)}, GUID: {GetVersion(model)}");
                 rows = connection.Execute(RepositorySql.GetUpdateStatement(), model);
             }
 

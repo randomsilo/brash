@@ -258,7 +258,6 @@ namespace Brash.Infrastructure.Sqlite
                 connection.Open();
                 Logger.Verbose(RepositorySql.GetUpdateStatement());
                 Logger.Verbose($"ID: {GetId(model)}, GUID: {GetGuid(model)}");
-                Logger.Verbose(RepositorySql.GetUpdateStatement());
                 rows = connection.Execute(RepositorySql.GetUpdateStatement(), model);
             }
 
