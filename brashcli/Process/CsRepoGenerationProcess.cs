@@ -214,27 +214,27 @@ namespace brashcli.Process
             lines.Append($"\n\t\t\tLogger = logger;");
 			lines.Append( "\n\t\t}");
 
-			lines.Append($"\n\n\t\tpublic ActionResult<{entity.Name}> Create({entity.Name} model)");
+			lines.Append($"\n\n\t\tpublic BrashActionResult<{entity.Name}> Create({entity.Name} model)");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\treturn Repository.Create(model);");
 			lines.Append( "\n\t\t}");
 
-			lines.Append($"\n\n\t\tpublic ActionResult<{entity.Name}> Fetch({entity.Name} model)");
+			lines.Append($"\n\n\t\tpublic BrashActionResult<{entity.Name}> Fetch({entity.Name} model)");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\treturn Repository.Fetch(model);");
 			lines.Append( "\n\t\t}");
 
-			lines.Append($"\n\n\t\tpublic ActionResult<{entity.Name}> Update({entity.Name} model)");
+			lines.Append($"\n\n\t\tpublic BrashActionResult<{entity.Name}> Update({entity.Name} model)");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\treturn Repository.Update(model);");
 			lines.Append( "\n\t\t}");
 
-			lines.Append($"\n\n\t\tpublic ActionResult<{entity.Name}> Delete({entity.Name} model)");
+			lines.Append($"\n\n\t\tpublic BrashActionResult<{entity.Name}> Delete({entity.Name} model)");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\treturn Repository.Delete(model);");
 			lines.Append( "\n\t\t}");
 
-			lines.Append($"\n\n\t\tpublic QueryResult<{entity.Name}> FindWhere(string where)");
+			lines.Append($"\n\n\t\tpublic BrashQueryResult<{entity.Name}> FindWhere(string where)");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\treturn Repository.FindWhere(where);");
 			lines.Append( "\n\t\t}");

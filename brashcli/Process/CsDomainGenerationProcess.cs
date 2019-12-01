@@ -229,11 +229,11 @@ namespace brashcli.Process
 			
 			lines.Append( "\n\t{");
 
-			lines.Append($"\n\t\tActionResult<{entity.Name}> Create({entity.Name} model);");
-        	lines.Append($"\n\t\tActionResult<{entity.Name}> Fetch({entity.Name} model);");
-        	lines.Append($"\n\t\tActionResult<{entity.Name}> Update({entity.Name} model);");
-        	lines.Append($"\n\t\tActionResult<{entity.Name}> Delete({entity.Name} model);");
-        	lines.Append($"\n\t\tQueryResult<{entity.Name}> FindWhere(string where);");
+			lines.Append($"\n\t\tBrashActionResult<{entity.Name}> Create({entity.Name} model);");
+        	lines.Append($"\n\t\tBrashActionResult<{entity.Name}> Fetch({entity.Name} model);");
+        	lines.Append($"\n\t\tBrashActionResult<{entity.Name}> Update({entity.Name} model);");
+        	lines.Append($"\n\t\tBrashActionResult<{entity.Name}> Delete({entity.Name} model);");
+        	lines.Append($"\n\t\tBrashQueryResult<{entity.Name}> FindWhere(string where);");
 
 			lines.Append( "\n\t}");
 			lines.Append( "\n}");

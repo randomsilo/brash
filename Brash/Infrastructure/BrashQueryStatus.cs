@@ -1,12 +1,12 @@
 namespace Brash.Infrastructure
 {
-    public enum ActionStatus
+    public enum BrashQueryStatus
     {
         UNKNOWN
         , SUCCESS
         , ERROR
         , WARNING
         , INFORMATION
-        , NOT_FOUND
+        , NO_RECORDS
     }
 }

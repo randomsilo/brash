@@ -78,13 +78,13 @@ namespace Brash.Infrastructure.Sqlite
             return id;
         }
 
-        public ActionResult<T> Create(T model)
+        public BrashActionResult<T> Create(T model)
         {
-            ActionResult<T> result = new ActionResult<T>()
+            BrashActionResult<T> result = new BrashActionResult<T>()
             {
                 Model = model
                 , Message = "init"
-                , Status = ActionStatus.INFORMATION
+                , Status = BrashActionStatus.INFORMATION
             };
 
             var id = PerformInsert(model);
@@ -92,125 +92,121 @@ namespace Brash.Infrastructure.Sqlite
             {
                 SetId(id, model);
                 var fetchResult = Fetch(model);
-                if (fetchResult.Status == ActionStatus.SUCCESS)
+                if (fetchResult.Status == BrashActionStatus.SUCCESS)
                 {
                     result.Model = fetchResult.Model;
-                    result.UpdateStatus(ActionStatus.SUCCESS, $"Record created. ({GetId(result.Model)})");
+                    result.UpdateStatus(BrashActionStatus.SUCCESS, $"Record created. ({GetId(result.Model)})");
                 }
                 else
                 {
-                    result.UpdateStatus(ActionStatus.ERROR, "Record creation failed.");
+                    result.UpdateStatus(BrashActionStatus.ERROR, "Record creation failed.");
                 }
             }
             else
             {
-                result.UpdateStatus(ActionStatus.ERROR, "Record creation failed. (fetch failure)");
+                result.UpdateStatus(BrashActionStatus.ERROR, "Record creation failed. (fetch failure)");
             }
 
             return result;
         }
-        public ActionResult<T> Fetch(T model)
+        public BrashActionResult<T> Fetch(T model)
         {
-            ActionResult<T> result = new ActionResult<T>()
+            BrashActionResult<T> result = new BrashActionResult<T>()
             {
                 Model = model
                 , Message = "init"
-                , Status = ActionStatus.INFORMATION
+                , Status = BrashActionStatus.INFORMATION
             };
 
             IEnumerable<T> models = PerformFetch(model);
             if (models.Count() == 1)
             {
-                result.UpdateStatus(ActionStatus.SUCCESS, "Record updated.");
+                result.UpdateStatus(BrashActionStatus.SUCCESS, "Record updated.");
                 result.Model = models.FirstOrDefault();
             }
             else if (models.Count() > 1)
             {
-                result.UpdateStatus(ActionStatus.ERROR, "More than 1 record found.");
+                result.UpdateStatus(BrashActionStatus.ERROR, "More than 1 record found.");
                 result.Model = models.FirstOrDefault();
             }
             else if (models.Count() == 0)
             {
-                result.UpdateStatus(ActionStatus.ERROR, "Record not found.");
+                result.UpdateStatus(BrashActionStatus.ERROR, "Record not found.");
             }
 
             return result;
         }
-        public ActionResult<T> Update(T model)
+        public BrashActionResult<T> Update(T model)
         {
-            ActionResult<T> result = new ActionResult<T>()
+            BrashActionResult<T> result = new BrashActionResult<T>()
             {
                 Model = model
                 , Message = "init"
-                , Status = ActionStatus.INFORMATION
+                , Status = BrashActionStatus.INFORMATION
             };
 
             int rows = PerformUpdate(model);
             if (rows == 1)
             {
                 result.Model = PerformFetch(model).FirstOrDefault();
-                result.UpdateStatus(ActionStatus.SUCCESS, "Record updated.");
+                result.UpdateStatus(BrashActionStatus.SUCCESS, "Record updated.");
             }
             else if (rows > 1)
             {
                 result.Model = PerformFetch(model).FirstOrDefault();
-                result.UpdateStatus(ActionStatus.ERROR, "More than 1 record updated.");
+                result.UpdateStatus(BrashActionStatus.ERROR, "More than 1 record updated.");
             }
             else
             {
-                result.UpdateStatus(ActionStatus.ERROR, "Record update failed.");
+                result.UpdateStatus(BrashActionStatus.ERROR, "Record update failed.");
             }
 
             return result;
         }
-        public ActionResult<T> Delete(T model)
+        public BrashActionResult<T> Delete(T model)
         {
-            ActionResult<T> result = new ActionResult<T>()
+            BrashActionResult<T> result = new BrashActionResult<T>()
             {
                 Model = model
                 , Message = "init"
-                , Status = ActionStatus.INFORMATION
+                , Status = BrashActionStatus.INFORMATION
             };
 
             int rows = PerformDelete(model);
             if (rows == 1)
             {
-                result.UpdateStatus(ActionStatus.SUCCESS, "Record removed.");
+                result.UpdateStatus(BrashActionStatus.SUCCESS, "Record removed.");
             }
             else if (rows > 1)
             {
-                result.UpdateStatus(ActionStatus.ERROR, "More than 1 record removed.");
+                result.UpdateStatus(BrashActionStatus.ERROR, "More than 1 record removed.");
             }
             else
             {
-                result.UpdateStatus(ActionStatus.ERROR, "Record remove failed.");
+                result.UpdateStatus(BrashActionStatus.ERROR, "Record remove failed.");
             }
 
             return result;
         }
 
-        public QueryResult<T> FindWhere(string where)
+        public BrashQueryResult<T> FindWhere(string where)
         {
-            QueryResult<T> result = new QueryResult<T>()
+            BrashQueryResult<T> result = new BrashQueryResult<T>()
             {
                 Models = new List<T>()
                 , Message = "init"
-                , Status = QueryStatus.INFORMATION
+                , Status = BrashQueryStatus.INFORMATION
             };
 
             IEnumerable<T> models = PerformFind(where);
-            if (models.Count() > 1)
+            if (models.Count() > 0)
             {
-                result.UpdateStatus(QueryStatus.SUCCESS, $"{models.Count()} records found");
+                result.UpdateStatus(BrashQueryStatus.SUCCESS, $"{models.Count()} records found");
                 result.Models = models.ToList();
             }
             else if (models.Count() == 0)
             {
-                result.UpdateStatus(QueryStatus.NO_RECORDS, $"{models.Count()} records found");
-            }
-            else
-            {
-                result.UpdateStatus(QueryStatus.ERROR, $"Query count issue: this should never happen");
+                result.UpdateStatus(BrashQueryStatus.NO_RECORDS, $"{models.Count()} records found");
             }
 
             return result;

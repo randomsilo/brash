@@ -105,19 +105,19 @@ namespace BrashTest.Repository.Sqlite
             var personRepo = new PersonRepository(databaseManager, personRepoSql, logger);
             Assert.NotNull(personRepo);
 
-            ActionResult<BrashTest.Mock.Model.Person> result = null;
+            BrashActionResult<BrashTest.Mock.Model.Person> result = null;
 
             result = personRepo.Create(person);
-            Assert.True(result.Status == ActionStatus.SUCCESS);
+            Assert.True(result.Status == BrashActionStatus.SUCCESS);
             Assert.True(result.Model.PersonId > 0);
 
             person.LastName = "Parker";
             result = personRepo.Update(person);
-            Assert.True(result.Status == ActionStatus.SUCCESS);
+            Assert.True(result.Status == BrashActionStatus.SUCCESS);
             Assert.Equal("Parker", result.Model.LastName);
 
             result = personRepo.Delete(person);
-            Assert.True(result.Status == ActionStatus.SUCCESS);
+            Assert.True(result.Status == BrashActionStatus.SUCCESS);
         }
 
         [Fact]
@@ -160,7 +160,7 @@ namespace BrashTest.Repository.Sqlite
             var personRepo = new PersonRepository(databaseManager, personRepoSql, logger);
             Assert.NotNull(personRepo);
 
-            ActionResult<BrashTest.Mock.Model.Person> result = null;
+            BrashActionResult<BrashTest.Mock.Model.Person> result = null;
 
             // setup bogus
             var random = new Random();
@@ -185,7 +185,7 @@ namespace BrashTest.Repository.Sqlite
             {
                 result = personRepo.Create(p);
 
-                Assert.True(result.Status == ActionStatus.SUCCESS);
+                Assert.True(result.Status == BrashActionStatus.SUCCESS);
                 Assert.True(result.Model.PersonId >= 0);
                 personIds.Add(result.Model.PersonId);
             }
@@ -197,7 +197,7 @@ namespace BrashTest.Repository.Sqlite
                 };
 
                 result = personRepo.Fetch(model);
-                Assert.True(result.Status == ActionStatus.SUCCESS);
+                Assert.True(result.Status == BrashActionStatus.SUCCESS);
                 Assert.True(result.Model.PersonId >= 0);
             }
         }
@@ -242,7 +242,7 @@ namespace BrashTest.Repository.Sqlite
             var personRepo = new PersonRepository(databaseManager, personRepoSql, logger);
             Assert.NotNull(personRepo);
 
-            ActionResult<BrashTest.Mock.Model.Person> result = null;
+            BrashActionResult<BrashTest.Mock.Model.Person> result = null;
 
             List<Mock.Model.Person> people = new List<Mock.Model.Person>();
             people.Add(new Mock.Model.Person()
@@ -274,19 +274,19 @@ namespace BrashTest.Repository.Sqlite
             {
                 result = personRepo.Create(p);
 
-                Assert.True(result.Status == ActionStatus.SUCCESS);
+                Assert.True(result.Status == BrashActionStatus.SUCCESS);
                 Assert.True(result.Model.PersonId >= 0);
                 personIds.Add(result.Model.PersonId);
             }
 
-            QueryResult<Mock.Model.Person> findResult = null;
+            BrashQueryResult<Mock.Model.Person> findResult = null;
 
             findResult = personRepo.FindWhere("WHERE MiddleName = 'Matt'");
-            Assert.True(findResult.Status == QueryStatus.SUCCESS);
+            Assert.True(findResult.Status == BrashQueryStatus.SUCCESS);
             Assert.True(findResult.Models.Count() == 2);
 
             findResult = personRepo.FindWhere("WHERE MiddleName = 'Jamie'");
-            Assert.True(findResult.Status == QueryStatus.NO_RECORDS);
+            Assert.True(findResult.Status == BrashQueryStatus.NO_RECORDS);
             Assert.True(findResult.Models.Count() == 0);
 
 

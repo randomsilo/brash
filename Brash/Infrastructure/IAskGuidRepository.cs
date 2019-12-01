@@ -6,10 +6,10 @@ namespace Brash.Infrastructure
     public interface IAskGuidRepository<T> where T : IAskGuid
     {
         IManageDatabase DatabaseManager { get; }
-        ActionResult<T> Create(T model);
-        ActionResult<T> Fetch(T model);
-        ActionResult<T> Update(T model);
-        ActionResult<T> Delete(T model);
-        QueryResult<T> FindWhere(string where);
+        BrashActionResult<T> Create(T model);
+        BrashActionResult<T> Fetch(T model);
+        BrashActionResult<T> Update(T model);
+        BrashActionResult<T> Delete(T model);
+        BrashQueryResult<T> FindWhere(string where);
     }
 }

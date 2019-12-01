@@ -148,13 +148,33 @@ namespace brashcli.Process
 					, entry
 					, idPattern
 				));
+
+				System.IO.File.WriteAllText( fileNamePath, lines.ToString());
+			}
+			else if (idPattern.Equals(Global.IDPATTERN_ASKGUID))
+			{
+				lines.Append( TplCsApiAskGuid(
+					_domainStructure.Domain
+					, entry
+					, idPattern
+				));
+
+				System.IO.File.WriteAllText( fileNamePath, lines.ToString());
+			}
+			else if (idPattern.Equals(Global.IDPATTERN_ASKVERSION))
+			{
+				lines.Append( TplCsApiAskVersion(
+					_domainStructure.Domain
+					, entry
+					, idPattern
+				));
+
+				System.IO.File.WriteAllText( fileNamePath, lines.ToString());
 			}
 			else
 			{
-				//throw new NotImplementedException($"{idPattern} has not been implemented.");
+				_logger.Error($"IdPattern not implemented: {idPattern}");
 			}
-
-			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
 		}
 
 		public string ToLowerFirstChar(string input)
@@ -178,6 +198,7 @@ namespace brashcli.Process
 
 			lines.Append(  $"using System.Collections.Generic;");
 			lines.Append($"\nusing Microsoft.AspNetCore.Mvc;");
+			lines.Append($"\nusing Brash.Infrastructure;");
 			lines.Append($"\nusing {domain}.Domain.Model;");
 			lines.Append($"\nusing {domain}.Infrastructure.Sqlite.Service;");
 			lines.Append($"\n");
@@ -210,7 +231,7 @@ namespace brashcli.Process
 				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE 1 = 1 ORDER BY 1 \");");
 			}
 			
-			lines.Append( "\n\t\t\tif (queryResult.Status == Brash.Infrastructure.QueryStatus.ERROR)");
+			lines.Append( "\n\t\t\tif (queryResult.Status == BrashQueryStatus.ERROR)");
 			lines.Append( "\n\t\t\t\treturn BadRequest(queryResult.Message);");
 			lines.Append( "\n\t\t");
 			lines.Append( "\n\t\t\treturn queryResult.Models;");
@@ -226,12 +247,12 @@ namespace brashcli.Process
 			lines.Append( "\n\t\t\t};");
 			lines.Append( "\n\t\t");
 			lines.Append($"\n\t\t\tvar serviceResult = _{entityInstanceName}Service.Fetch(model);");
-			lines.Append( "\n\t\t\tif (serviceResult.HasError())");
-			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.GetErrorMessage());");
-			lines.Append( "\n\t\t\tif (serviceResult.WorkResult.Status == Brash.Infrastructure.ActionStatus.NOT_FOUND)");
-			lines.Append( "\n\t\t\t\treturn NotFound(serviceResult.WorkResult.Message);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.Message);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.NOT_FOUND)");
+			lines.Append( "\n\t\t\t\treturn NotFound(serviceResult.Message);");
 			lines.Append( "\n\t\t");
-			lines.Append( "\n\t\t\treturn serviceResult.WorkResult.Model;");
+			lines.Append( "\n\t\t\treturn serviceResult.Model;");
 			lines.Append( "\n\t\t}");
 			lines.Append( "\n\t\t");
 			lines.Append($"\n\t\t// POST api/{entityName}");
@@ -239,10 +260,10 @@ namespace brashcli.Process
 			lines.Append($"\n\t\tpublic ActionResult<{entityName}> Post([FromBody] {entityName} model)");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\tvar serviceResult = _{entityInstanceName}Service.Create(model);");
-			lines.Append( "\n\t\t\tif (serviceResult.HasError())");
-			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.GetErrorMessage());");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.Message);");
 			lines.Append( "\n\t\t\t");
-			lines.Append( "\n\t\t\treturn serviceResult.WorkResult.Model;");
+			lines.Append( "\n\t\t\treturn serviceResult.Model;");
 			lines.Append( "\n\t\t}");
 			lines.Append( "\n\t\t");
 			lines.Append($"\n\t\t// PUT api/{entityName}/6");
@@ -252,12 +273,12 @@ namespace brashcli.Process
 			lines.Append($"\n\t\t\tmodel.{entityName}Id = id;");
 			lines.Append( "\n\t\t\t");
 			lines.Append($"\n\t\t\tvar serviceResult = _{entityInstanceName}Service.Update(model);");
-			lines.Append( "\n\t\t\tif (serviceResult.HasError())");
-			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.GetErrorMessage());");
-			lines.Append( "\n\t\t\tif (serviceResult.WorkResult.Status == Brash.Infrastructure.ActionStatus.NOT_FOUND)");
-			lines.Append( "\n\t\t\t\treturn NotFound(serviceResult.WorkResult.Message);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.Message);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.NOT_FOUND)");
+			lines.Append( "\n\t\t\t\treturn NotFound(serviceResult.Message);");
 			lines.Append( "\n\t\t\t");
-			lines.Append( "\n\t\t\treturn serviceResult.WorkResult.Model;");
+			lines.Append( "\n\t\t\treturn serviceResult.Model;");
 			lines.Append( "\n\t\t}");
 			lines.Append( "\n\t\t");
 			lines.Append($"\n\t\t// DELETE api/{entityName}/6");
@@ -270,10 +291,10 @@ namespace brashcli.Process
 			lines.Append( "\n\t\t\t};");
 			lines.Append( "\n\t\t");
 			lines.Append($"\n\t\t\tvar serviceResult = _{entityInstanceName}Service.Delete(model);");
-			lines.Append( "\n\t\t\tif (serviceResult.HasError())");
-			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.GetErrorMessage());");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.Message);");
 			lines.Append( "\n\t\t");
-			lines.Append( "\n\t\t\treturn serviceResult.WorkResult.Model;");
+			lines.Append( "\n\t\t\treturn serviceResult.Model;");
 			lines.Append( "\n\t\t}");
 			lines.Append( "\n\t}");
 			lines.Append( "\n}");
@@ -291,9 +312,110 @@ namespace brashcli.Process
 			string entityInstanceName = ToLowerFirstChar(entity.Name);
             StringBuilder lines = new StringBuilder();
 
-			// TODO
+			lines.Append(  $"using System.Collections.Generic;");
+			lines.Append($"\nusing Microsoft.AspNetCore.Mvc;");
+			lines.Append($"\nusing Brash.Infrastructure;");
+			lines.Append($"\nusing {domain}.Domain.Model;");
+			lines.Append($"\nusing {domain}.Infrastructure.Sqlite.Service;");
+			lines.Append($"\n");
+			lines.Append($"\nnamespace {domain}.Api.Controllers");
+			lines.Append( "\n{");
+			lines.Append( "\n\t[Route(\"api/[controller]\")]");
+			lines.Append($"\n\t[ApiController]");
+			lines.Append($"\n\tpublic class {entityName}Controller : ControllerBase");
+			lines.Append( "\n\t{");
+			lines.Append($"\n\t\tprivate {entityName}Service _{entityInstanceName}Service"); lines.Append(" { get; set; }");
+			lines.Append( "\n\t\tprivate Serilog.ILogger _logger { get; set; }");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\tpublic {entityName}Controller({entityName}Service {entityInstanceName}Service, Serilog.ILogger logger) : base()");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\t_{entityInstanceName}Service = {entityInstanceName}Service;");
+			lines.Append( "\n\t\t\t_logger = logger;");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t// GET /api/{entityName}/");
+			lines.Append( "\n\t\t[HttpGet]");
+			lines.Append($"\n\t\tpublic ActionResult<IEnumerable<{entityName}>> Get()");
+			lines.Append( "\n\t\t{");
+			
+			if (entity.AdditionalPatterns != null && entity.AdditionalPatterns.Contains(Global.ADDITIONALPATTERN_CHOICE))
+			{
+				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE IFNULL(IsDisabled, 0) = 0 ORDER BY OrderNo \");");
+			}
+			else
+			{
+				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE 1 = 1 ORDER BY 1 \");");
+			}
+			
+			lines.Append( "\n\t\t\tif (queryResult.Status == BrashQueryStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(queryResult.Message);");
+			lines.Append( "\n\t\t");
+			lines.Append( "\n\t\t\treturn queryResult.Models;");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t// GET api/{entityName}/7dd44fed-bf64-42d8-a6ea-04357c73482e");
+			lines.Append( "\n\t\t[HttpGet(\"{guid}\")]");
+			lines.Append($"\n\t\tpublic ActionResult<{entityName}> Get(string guid)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\tvar model = new {entityName}()");
+			lines.Append( "\n\t\t\t{");
+			lines.Append($"\n\t\t\t\t{entityName}Guid = guid");
+			lines.Append( "\n\t\t\t};");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t\tvar serviceResult = _{entityInstanceName}Service.Fetch(model);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.Message);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.NOT_FOUND)");
+			lines.Append( "\n\t\t\t\treturn NotFound(serviceResult.Message);");
+			lines.Append( "\n\t\t");
+			lines.Append( "\n\t\t\treturn serviceResult.Model;");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t// POST api/{entityName}");
+			lines.Append( "\n\t\t[HttpPost]");
+			lines.Append($"\n\t\tpublic ActionResult<{entityName}> Post([FromBody] {entityName} model)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\tvar serviceResult = _{entityInstanceName}Service.Create(model);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.Message);");
+			lines.Append( "\n\t\t\t");
+			lines.Append( "\n\t\t\treturn serviceResult.Model;");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t// PUT api/{entityName}/7dd44fed-bf64-42d8-a6ea-04357c73482e");
+			lines.Append( "\n\t\t[HttpPut(\"{guid}\")]");
+			lines.Append($"\n\t\tpublic ActionResult<{entityName}> Put(string guid, [FromBody] {entityName} model)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\tmodel.{entityName}Guid = guid;");
+			lines.Append( "\n\t\t\t");
+			lines.Append($"\n\t\t\tvar serviceResult = _{entityInstanceName}Service.Update(model);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.Message);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.NOT_FOUND)");
+			lines.Append( "\n\t\t\t\treturn NotFound(serviceResult.Message);");
+			lines.Append( "\n\t\t\t");
+			lines.Append( "\n\t\t\treturn serviceResult.Model;");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t// DELETE api/{entityName}/7dd44fed-bf64-42d8-a6ea-04357c73482e");
+			lines.Append( "\n\t\t[HttpDelete(\"{guid}\")]");
+			lines.Append($"\n\t\tpublic ActionResult<{entityName}> Delete(string guid)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\tvar model = new {entityName}()");
+			lines.Append( "\n\t\t\t{");
+			lines.Append($"\n\t\t\t\t{entityName}Guid = guid");
+			lines.Append( "\n\t\t\t};");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t\tvar serviceResult = _{entityInstanceName}Service.Delete(model);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.Message);");
+			lines.Append( "\n\t\t");
+			lines.Append( "\n\t\t\treturn serviceResult.Model;");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t}");
+			lines.Append( "\n}");
 
-			return lines.ToString();
+            return lines.ToString();
 		}
 
 		public string TplCsApiAskVersion(
@@ -306,9 +428,113 @@ namespace brashcli.Process
 			string entityInstanceName = ToLowerFirstChar(entity.Name);
             StringBuilder lines = new StringBuilder();
 
-			// TODO
+			lines.Append(  $"using System.Collections.Generic;");
+			lines.Append($"\nusing Microsoft.AspNetCore.Mvc;");
+			lines.Append($"\nusing Brash.Infrastructure;");
+			lines.Append($"\nusing {domain}.Domain.Model;");
+			lines.Append($"\nusing {domain}.Infrastructure.Sqlite.Service;");
+			lines.Append($"\n");
+			lines.Append($"\nnamespace {domain}.Api.Controllers");
+			lines.Append( "\n{");
+			lines.Append( "\n\t[Route(\"api/[controller]\")]");
+			lines.Append($"\n\t[ApiController]");
+			lines.Append($"\n\tpublic class {entityName}Controller : ControllerBase");
+			lines.Append( "\n\t{");
+			lines.Append($"\n\t\tprivate {entityName}Service _{entityInstanceName}Service"); lines.Append(" { get; set; }");
+			lines.Append( "\n\t\tprivate Serilog.ILogger _logger { get; set; }");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\tpublic {entityName}Controller({entityName}Service {entityInstanceName}Service, Serilog.ILogger logger) : base()");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\t_{entityInstanceName}Service = {entityInstanceName}Service;");
+			lines.Append( "\n\t\t\t_logger = logger;");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t// GET /api/{entityName}/");
+			lines.Append( "\n\t\t[HttpGet]");
+			lines.Append($"\n\t\tpublic ActionResult<IEnumerable<{entityName}>> Get()");
+			lines.Append( "\n\t\t{");
+			
+			if (entity.AdditionalPatterns != null && entity.AdditionalPatterns.Contains(Global.ADDITIONALPATTERN_CHOICE))
+			{
+				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE IFNULL(IsDisabled, 0) = 0 ORDER BY OrderNo \");");
+			}
+			else
+			{
+				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE 1 = 1 ORDER BY 1 \");");
+			}
+			
+			lines.Append( "\n\t\t\tif (queryResult.Status == BrashQueryStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(queryResult.Message);");
+			lines.Append( "\n\t\t");
+			lines.Append( "\n\t\t\treturn queryResult.Models;");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t// GET api/{entityName}/7dd44fed-bf64-42d8-a6ea-04357c73482e/1");
+			lines.Append( "\n\t\t[HttpGet(\"{guid}/{version}\")]");
+			lines.Append($"\n\t\tpublic ActionResult<{entityName}> Get(string guid, decimal version)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\tvar model = new {entityName}()");
+			lines.Append( "\n\t\t\t{");
+			lines.Append($"\n\t\t\t\t{entityName}Guid = guid");
+			lines.Append($"\n\t\t\t\t, {entityName}RecordVersion = version");
+			lines.Append( "\n\t\t\t};");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t\tvar serviceResult = _{entityInstanceName}Service.Fetch(model);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.Message);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.NOT_FOUND)");
+			lines.Append( "\n\t\t\t\treturn NotFound(serviceResult.Message);");
+			lines.Append( "\n\t\t");
+			lines.Append( "\n\t\t\treturn serviceResult.Model;");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t// POST api/{entityName}");
+			lines.Append( "\n\t\t[HttpPost]");
+			lines.Append($"\n\t\tpublic ActionResult<{entityName}> Post([FromBody] {entityName} model)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\tvar serviceResult = _{entityInstanceName}Service.Create(model);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.Message);");
+			lines.Append( "\n\t\t\t");
+			lines.Append( "\n\t\t\treturn serviceResult.Model;");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t// PUT api/{entityName}/7dd44fed-bf64-42d8-a6ea-04357c73482e/1");
+			lines.Append( "\n\t\t[HttpPut(\"{guid}/{version}\")]");
+			lines.Append($"\n\t\tpublic ActionResult<{entityName}> Put(string guid, decimal version, [FromBody] {entityName} model)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\tmodel.{entityName}Guid = guid;");
+			lines.Append($"\n\t\t\tmodel.{entityName}RecordVersion = version;");
+			lines.Append( "\n\t\t\t");
+			lines.Append($"\n\t\t\tvar serviceResult = _{entityInstanceName}Service.Update(model);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.Message);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.NOT_FOUND)");
+			lines.Append( "\n\t\t\t\treturn NotFound(serviceResult.Message);");
+			lines.Append( "\n\t\t\t");
+			lines.Append( "\n\t\t\treturn serviceResult.Model;");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t// DELETE api/{entityName}/7dd44fed-bf64-42d8-a6ea-04357c73482e/1");
+			lines.Append( "\n\t\t[HttpDelete(\"{guid},{version}\")]");
+			lines.Append($"\n\t\tpublic ActionResult<{entityName}> Delete(string guid, decimal version)");
+			lines.Append( "\n\t\t{");
+			lines.Append($"\n\t\t\tvar model = new {entityName}()");
+			lines.Append( "\n\t\t\t{");
+			lines.Append($"\n\t\t\t\t{entityName}Guid = guid");
+			lines.Append($"\n\t\t\t\t, {entityName}RecordVersion = version");
+			lines.Append( "\n\t\t\t};");
+			lines.Append( "\n\t\t");
+			lines.Append($"\n\t\t\tvar serviceResult = _{entityInstanceName}Service.Delete(model);");
+			lines.Append( "\n\t\t\tif (serviceResult.Status == BrashActionStatus.ERROR)");
+			lines.Append( "\n\t\t\t\treturn BadRequest(serviceResult.Message);");
+			lines.Append( "\n\t\t");
+			lines.Append( "\n\t\t\treturn serviceResult.Model;");
+			lines.Append( "\n\t\t}");
+			lines.Append( "\n\t}");
+			lines.Append( "\n}");
 
-			return lines.ToString();
+            return lines.ToString();
 		}
 
 		public string TplCsApiProgram(string domain)
@@ -410,11 +636,11 @@ namespace " + domain + @".Api
 using Serilog;
 using Brash.Infrastructure;
 using Brash.Infrastructure.Sqlite;
-using MyProject.Infrastructure.Sqlite.Repository;
-using MyProject.Infrastructure.Sqlite.RepositorySql;
-using MyProject.Infrastructure.Sqlite.Service;
+using " + domain + @".Infrastructure.Sqlite.Repository;
+using " + domain + @".Infrastructure.Sqlite.RepositorySql;
+using " + domain + @".Infrastructure.Sqlite.Service;
 
-namespace MyProject.Api
+namespace " + domain + @".Api
 {
     public class BrashConfigure
     {
