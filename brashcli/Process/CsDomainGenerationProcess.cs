@@ -344,7 +344,7 @@ namespace brashcli.Process
 
 
 						_interfaceImplementations.Append("\n\t\t");
-						_interfaceImplementations.Append("\n\t\tpublic string GetAskGuidParentPropertyName()");
+						_interfaceImplementations.Append("\n\t\tpublic string GetParentGuidPropertyName()");
 						_interfaceImplementations.Append("\n\t\t{");
 						_interfaceImplementations.Append($"\n\t\t	return \"{parent.Name}Guid\";");
 						_interfaceImplementations.Append("\n\t\t}");
@@ -361,9 +361,15 @@ namespace brashcli.Process
 						_fields.Append(" { get; set; }");
 
 						_interfaceImplementations.Append("\n\t\t");
-						_interfaceImplementations.Append("\n\t\tpublic string GetAskVersionParentPropertyName()");
+						_interfaceImplementations.Append("\n\t\tpublic string GetParentGuidPropertyName()");
 						_interfaceImplementations.Append("\n\t\t{");
 						_interfaceImplementations.Append($"\n\t\t	return \"{parent.Name}Guid\";");
+						_interfaceImplementations.Append("\n\t\t}");
+
+						_interfaceImplementations.Append("\n\t\t");
+						_interfaceImplementations.Append("\n\t\tpublic string GetParentVersionPropertyName()");
+						_interfaceImplementations.Append("\n\t\t{");
+						_interfaceImplementations.Append($"\n\t\t	return \"{parent.Name}RecordVersion\";");
 						_interfaceImplementations.Append("\n\t\t}");
 						break;
 					case Global.IDPATTERN_ASKID:
@@ -375,7 +381,7 @@ namespace brashcli.Process
 						_fields.Append(" { get; set; }");
 
 						_interfaceImplementations.Append("\n\t\t");
-						_interfaceImplementations.Append("\n\t\tpublic string GetAskIdParentPropertyName()");
+						_interfaceImplementations.Append("\n\t\tpublic string GetParentIdPropertyName()");
 						_interfaceImplementations.Append("\n\t\t{");
 						_interfaceImplementations.Append($"\n\t\t	return \"{parent.Name}Id\";");
 						_interfaceImplementations.Append("\n\t\t}");
