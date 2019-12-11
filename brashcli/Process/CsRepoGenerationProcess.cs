@@ -239,6 +239,38 @@ namespace brashcli.Process
 			lines.Append($"\n\t\t\treturn Repository.FindWhere(where);");
 			lines.Append( "\n\t\t}");
 
+			if (parent != null)
+			{
+				switch(parent.IdPattern)
+				{
+					case Global.IDPATTERN_ASKGUID:
+						lines.Append($"\n\n\t\tpublic BrashQueryResult<{entity.Name}> FindByParent(string guid)");
+						lines.Append( "\n\t\t{");
+						lines.Append($"\n\t\t\tstring where = $\"WHERE {parent.Name}Guid = '{{guid}}'\";");
+						lines.Append($"\n\t\t\treturn Repository.FindWhere(where);");
+						lines.Append( "\n\t\t}");
+
+						break;
+					case Global.IDPATTERN_ASKVERSION:
+						lines.Append($"\n\n\t\tpublic BrashQueryResult<{entity.Name}> FindByParent(string guid, double recordVersion)");
+						lines.Append( "\n\t\t{");
+						lines.Append($"\n\t\t\tstring where = $\"WHERE {parent.Name}Guid = '{{guid}}' AND {parent.Name}RecordVersion = {{recordVersion}}\";");
+						lines.Append($"\n\t\t\treturn Repository.FindWhere(where);");
+						lines.Append( "\n\t\t}");
+
+						break;
+					case Global.IDPATTERN_ASKID:
+					default:
+						lines.Append($"\n\n\t\tpublic BrashQueryResult<{entity.Name}> FindByParent(int id)");
+						lines.Append( "\n\t\t{");
+						lines.Append($"\n\t\t\tstring where = $\"WHERE {parent.Name}Id = {{id}}\";");
+						lines.Append($"\n\t\t\treturn Repository.FindWhere(where);");
+						lines.Append( "\n\t\t}");
+
+						break;
+				}
+			}
+
 
 			lines.Append( "\n\t}");
 			lines.Append( "\n}");

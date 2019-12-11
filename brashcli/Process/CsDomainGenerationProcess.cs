@@ -235,6 +235,25 @@ namespace brashcli.Process
         	lines.Append($"\n\t\tBrashActionResult<{entity.Name}> Delete({entity.Name} model);");
         	lines.Append($"\n\t\tBrashQueryResult<{entity.Name}> FindWhere(string where);");
 
+
+			if (parent != null)
+			{
+				switch(parent.IdPattern)
+				{
+					case Global.IDPATTERN_ASKGUID:
+						lines.Append($"\n\t\tBrashQueryResult<{entity.Name}> FindByParent(string guid);");
+						break;
+					case Global.IDPATTERN_ASKVERSION:
+						lines.Append($"\n\t\tBrashQueryResult<{entity.Name}> FindByParent(string guid, double recordVersion);");
+						break;
+					case Global.IDPATTERN_ASKID:
+					default:
+						lines.Append($"\n\t\tBrashQueryResult<{entity.Name}> FindByParent(int id);");
+						break;
+				}
+			}
+
+
 			lines.Append( "\n\t}");
 			lines.Append( "\n}");
 
