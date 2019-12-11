@@ -617,7 +617,7 @@ namespace brashcli.Process
 			statement.Append($"\n\t\t\tWHERE");
 			statement.Append($"\n\t\t\t\t{entity.Name}Id = IFNULL(@{entity.Name}Id,0)");
 
-			if (entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION))
+			if (entity.IdPattern != null && (entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION)))
 			{
 				statement.Append($"\n\t\t\t\tOR (");
 				bool addSeparator = false;
@@ -705,7 +705,7 @@ namespace brashcli.Process
 			statement.Append($"\n\t\t\tWHERE");
 			statement.Append($"\n\t\t\t\t{entity.Name}Id = IFNULL(@{entity.Name}Id,0)");
 
-			if (entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION))
+			if (entity.IdPattern != null && (entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION)))
 			{
 				statement.Append($"\n\t\t\t\tOR (");
 				bool addSeparator = false;
@@ -836,7 +836,7 @@ namespace brashcli.Process
 			statement.Append($"\n\t\t\tWHERE");
 			statement.Append($"\n\t\t\t\t{entity.Name}Id = IFNULL(@{entity.Name}Id,0)");
 
-			if (entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION))
+			if (entity.IdPattern != null && (entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION)))
 			{
 				statement.Append($"\n\t\t\t\tOR (");
 				bool addSeparator = false;
