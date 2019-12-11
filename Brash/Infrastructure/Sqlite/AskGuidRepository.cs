@@ -47,7 +47,8 @@ namespace Brash.Infrastructure.Sqlite
             var targetType = IsNullableType(propertyInfo.PropertyType) ? Nullable.GetUnderlyingType(propertyInfo.PropertyType) : propertyInfo.PropertyType;
             
             //Returns an System.Object with the specified System.Type and whose value is equivalent to the specified object.
-            propertyVal = Convert.ChangeType(propertyVal, targetType);
+            if (propertyVal != null)
+                propertyVal = Convert.ChangeType(propertyVal, targetType);
         
             //Set the value of the property
             propertyInfo.SetValue(model, propertyVal, null);
@@ -97,8 +98,36 @@ namespace Brash.Infrastructure.Sqlite
             return guid;
         }
 
+        public void SetGuid(string guid, T model)
+        {
+            // value object
+            object propertyVal = (object)guid;
+
+            //find out the type
+            Type type = model.GetType();
+        
+            //get the property information based on the type
+            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(model.GetGuidPropertyName());
+        
+            //find the property type
+            Type propertyType = propertyInfo.PropertyType;
+            
+            //Convert.ChangeType does not handle conversion to nullable types
+            //if the property type is nullable, we need to get the underlying type of the property
+            var targetType = IsNullableType(propertyInfo.PropertyType) ? Nullable.GetUnderlyingType(propertyInfo.PropertyType) : propertyInfo.PropertyType;
+            
+            //Returns an System.Object with the specified System.Type and whose value is equivalent to the specified object.
+            if (propertyVal != null)
+                propertyVal = Convert.ChangeType(propertyVal, targetType);
+        
+            //Set the value of the property
+            propertyInfo.SetValue(model, propertyVal, null);
+        }
+
         public BrashActionResult<T> Create(T model)
         {
+            SetGuid(Guid.NewGuid().ToString(), model);
+            
             BrashActionResult<T> result = new BrashActionResult<T>()
             {
                 Model = model
@@ -268,6 +297,7 @@ namespace Brash.Infrastructure.Sqlite
             {
                 connection.Open();
                 Logger.Verbose(RepositorySql.GetDeleteStatement());
+                Logger.Verbose($"ID: {GetId(model)}, GUID: {GetGuid(model)}");
                 rows = connection.Execute(RepositorySql.GetDeleteStatement(), model);
             }
 

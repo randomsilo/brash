@@ -532,15 +532,28 @@ namespace brashcli.Process
 			lines.Append( "\n\t\t[HttpGet]");
 			lines.Append($"\n\t\tpublic ActionResult<IEnumerable<{entityName}>> Get()");
 			lines.Append( "\n\t\t{");
-			
-			if (entity.AdditionalPatterns != null && entity.AdditionalPatterns.Contains(Global.ADDITIONALPATTERN_CHOICE))
+
+			// IsDeleted
+			string IsDeletedClause = "";
+			if (entity.TrackingPattern != null && entity.TrackingPattern.Equals(Global.TRACKINGPATTERN_AUDITPRESERVE))
 			{
-				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE IFNULL(IsDisabled, 0) = 0 ORDER BY OrderNo \");");
+				IsDeletedClause = "AND IsDeleted = 0";
+			}
+			
+			if (idPattern.Equals(Global.IDPATTERN_ASKVERSION))
+			{
+				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE IFNULL(IsCurrent, 0) = 1 {IsDeletedClause} ORDER BY 1 \");");
+			}
+			else if (entity.AdditionalPatterns != null && entity.AdditionalPatterns.Contains(Global.ADDITIONALPATTERN_CHOICE))
+			{
+				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE IFNULL(IsDisabled, 0) = 0 {IsDeletedClause} ORDER BY OrderNo \");");
 			}
 			else
 			{
-				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE 1 = 1 ORDER BY 1 \");");
+				lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindWhere(\"WHERE 1 = 1 {IsDeletedClause} ORDER BY 1 \");");
 			}
+
+			
 			
 			lines.Append( "\n\t\t\tif (queryResult.Status == BrashQueryStatus.ERROR)");
 			lines.Append( "\n\t\t\t\treturn BadRequest(queryResult.Message);");

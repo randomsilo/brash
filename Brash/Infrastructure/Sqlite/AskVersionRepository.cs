@@ -47,7 +47,8 @@ namespace Brash.Infrastructure.Sqlite
             var targetType = IsNullableType(propertyInfo.PropertyType) ? Nullable.GetUnderlyingType(propertyInfo.PropertyType) : propertyInfo.PropertyType;
             
             //Returns an System.Object with the specified System.Type and whose value is equivalent to the specified object.
-            propertyVal = Convert.ChangeType(propertyVal, targetType);
+            if (propertyVal != null)
+                propertyVal = Convert.ChangeType(propertyVal, targetType);
         
             //Set the value of the property
             propertyInfo.SetValue(model, propertyVal, null);
@@ -116,6 +117,51 @@ namespace Brash.Infrastructure.Sqlite
             return version;
         }
 
+        public bool? GetIsCurrent(T model)
+        {
+            bool? isCurrent = null;
+
+            //find out the type
+            Type type = model.GetType();
+        
+            //get the property information based on the type
+            System.Reflection.PropertyInfo propertyInfo = type.GetProperty("IsCurrent");
+        
+            //find the property type
+            Type propertyType = propertyInfo.PropertyType;
+        
+            //Set the value of the property
+            isCurrent = (bool?)propertyInfo.GetValue(model);
+
+            return isCurrent;
+        }
+
+        public void SetGuid(string guid, T model)
+        {
+            // value object
+            object propertyVal = (object)guid;
+
+            //find out the type
+            Type type = model.GetType();
+        
+            //get the property information based on the type
+            System.Reflection.PropertyInfo propertyInfo = type.GetProperty(model.GetGuidPropertyName());
+        
+            //find the property type
+            Type propertyType = propertyInfo.PropertyType;
+            
+            //Convert.ChangeType does not handle conversion to nullable types
+            //if the property type is nullable, we need to get the underlying type of the property
+            var targetType = IsNullableType(propertyInfo.PropertyType) ? Nullable.GetUnderlyingType(propertyInfo.PropertyType) : propertyInfo.PropertyType;
+            
+            //Returns an System.Object with the specified System.Type and whose value is equivalent to the specified object.
+            if (propertyVal != null)
+                propertyVal = Convert.ChangeType(propertyVal, targetType);
+        
+            //Set the value of the property
+            propertyInfo.SetValue(model, propertyVal, null);
+        }
+
         public void SetVersion(decimal? version, T model)
         {
             // value object
@@ -143,6 +189,10 @@ namespace Brash.Infrastructure.Sqlite
 
         public BrashActionResult<T> Create(T model)
         {
+            SetId(null, model);
+            SetGuid(Guid.NewGuid().ToString(), model);
+            SetVersion(1.0M, model);
+
             BrashActionResult<T> result = new BrashActionResult<T>()
             {
                 Model = model
@@ -213,6 +263,21 @@ namespace Brash.Infrastructure.Sqlite
                 , Message = "init"
                 , Status = BrashActionStatus.INFORMATION
             };
+
+            var record = PerformFetch(model).FirstOrDefault();
+            Logger.Verbose($"Post Fetch to determine if we can insert new recrd from this version");
+            Logger.Verbose($"ID: {GetId(record)}, GUID: {GetGuid(record)}, Version: {GetVersion(record)}, IsCurrent: {GetIsCurrent(record)}");
+            if(record == null)
+            {
+                result.UpdateStatus(BrashActionStatus.ERROR, "Record not found.  Unable to make new version.");
+                return result;
+            }
+
+            if(record != null && GetIsCurrent(record) == false )
+            {
+                result.UpdateStatus(BrashActionStatus.ERROR, "Record version is not current.");
+                return result;
+            }
 
             decimal? currentVersion = GetVersion(model);
             int rows = PerformUpdate(model);
@@ -296,6 +361,7 @@ namespace Brash.Infrastructure.Sqlite
             {
                 connection.Open();
                 Logger.Verbose(RepositorySql.GetCreateStatement());
+                Logger.Verbose($"ID: {GetId(model)}, GUID: {GetGuid(model)}, Version: {GetVersion(model)}");
                 id = connection.Query<int>(RepositorySql.GetCreateStatement(), model).First();
             }
 

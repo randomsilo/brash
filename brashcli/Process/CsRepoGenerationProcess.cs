@@ -596,6 +596,9 @@ namespace brashcli.Process
 			addComma = false;
 			foreach( var column in _columns)
 			{
+				if (column.Equals($"{entity.Name}Id"))
+					continue;
+
 				statement.Append($"\n\t\t\t\t");
 				if (addComma)
 					statement.Append(", ");
@@ -611,6 +614,9 @@ namespace brashcli.Process
 			addComma = false;
 			foreach( var column in _columns)
 			{
+				if (column.Equals($"{entity.Name}Id"))
+					continue;
+
 				statement.Append($"\n\t\t\t\t");
 				if (addComma)
 					statement.Append(", ");
@@ -764,25 +770,8 @@ namespace brashcli.Process
 			statements.Append($"\n\t\t\tSET");
 			statements.Append($"\n\t\t\t\tIsCurrent = 0");
 			statements.Append($"\n\t\t\tWHERE");
-			statements.Append($"\n\t\t\t\t{entity.Name}Id = IFNULL(@{entity.Name}Id,0)");
-
-			if (entity.IdPattern.Equals(Global.IDPATTERN_ASKGUID) || entity.IdPattern.Equals(Global.IDPATTERN_ASKVERSION))
-			{
-				statements.Append($"\n\t\t\t\tOR (");
-				bool addSeparator = false;
-				foreach( var column in _primaryKeyColumns)
-				{
-					statements.Append($"\n\t\t\t\t\t");
-					if (addSeparator)
-						statements.Append("AND ");
-
-					statements.Append($"{column} = @{column}");
-					addSeparator = true;
-				}
-				statements.Append($"\n\t\t\t\t);");
-			}
-
-			statements.Append($"\n\t\t\t");
+			statements.Append($"\n\t\t\t\t{entity.Name}Id = IFNULL(@{entity.Name}Id,0) OR {entity.Name}Guid = IFNULL(@{entity.Name}Guid,'');");
+			statements.Append($"\n\n\t\t\t");
 			statements.Append(BuildUpdateInsertStatement(parent, entity));
 
 			return statements.ToString();

@@ -1364,32 +1364,5 @@ namespace brashcli.Process
 			}
 		}
 
-
-
-		private string BuildDeleteUpdateFlagStatement(Structure parent, Structure entity)
-		{
-			StringBuilder statement = new StringBuilder();
-			bool addComma = false;
-
-			statement.Append($"UPDATE {entity.Name}");
-			statement.Append($"\n\t\t\tSET IsDeleted = 1");
-			statement.Append($"\n\t\t\tWHERE");
-			
-			addComma = false;
-			foreach( var column in _repoStatements)
-			{
-				statement.Append($"\n\t\t\t\t");
-				if (addComma)
-					statement.Append(", ");
-
-				statement.Append($"{column} = @{column}");
-				addComma = true;
-			}
-
-			statement.Append($"\n\t\t\t;");
-
-			return statement.ToString();
-		}
-
     }
 }
