@@ -129,24 +129,24 @@ namespace brashcli.Process
 			}
 		}
 
-		public string MakeControllerFilePath(Structure entry)
+		public string MakeControllerFilePath(Structure entity)
 		{
-			return System.IO.Path.Combine(_pathControllerDirectory, entry.Name + "Controller.cs");
+			return System.IO.Path.Combine(_pathControllerDirectory, entity.Name + "Controller.cs");
 		}
 
-		private void MakeControllerFileCs(Structure parent, Structure entry)
+		private void MakeControllerFileCs(Structure parent, Structure entity)
 		{
-			string fileNamePath = MakeControllerFilePath(entry);
+			string fileNamePath = MakeControllerFilePath(entity);
 			StringBuilder lines = new StringBuilder();
 
-			var idPattern = entry.IdPattern ?? Global.IDPATTERN_ASKID;
+			var idPattern = entity.IdPattern ?? Global.IDPATTERN_ASKID;
 
 			if (idPattern.Equals(Global.IDPATTERN_ASKID))
 			{
 				lines.Append( TplCsApiAskId(
 					_domainStructure.Domain
-					, entry
-					, idPattern
+					, entity
+					, parent
 				));
 
 				System.IO.File.WriteAllText( fileNamePath, lines.ToString());
@@ -155,8 +155,8 @@ namespace brashcli.Process
 			{
 				lines.Append( TplCsApiAskGuid(
 					_domainStructure.Domain
-					, entry
-					, idPattern
+					, entity
+					, parent
 				));
 
 				System.IO.File.WriteAllText( fileNamePath, lines.ToString());
@@ -165,8 +165,8 @@ namespace brashcli.Process
 			{
 				lines.Append( TplCsApiAskVersion(
 					_domainStructure.Domain
-					, entry
-					, idPattern
+					, entity
+					, parent
 				));
 
 				System.IO.File.WriteAllText( fileNamePath, lines.ToString());
@@ -186,15 +186,82 @@ namespace brashcli.Process
             return newString;
         }
 
+		private string GetFindByParentRoute(
+			string domain
+			, Structure entity
+			, Structure parent
+		)
+		{
+			string idPattern = entity.IdPattern ?? Global.IDPATTERN_ASKID;
+			string entityName = entity.Name;
+			string entityInstanceName = ToLowerFirstChar(entity.Name);
+			StringBuilder lines = new StringBuilder();
+
+			if (parent != null)
+			{
+				lines.Append($"\n");
+				
+				switch(parent.IdPattern)
+				{
+					case Global.IDPATTERN_ASKGUID:
+						lines.Append($"\n\t\t// GET /api/{entityName}ByParent/7dd44fed-bf64-42d8-a6ea-04357c73482e");
+						lines.Append( "\n\t\t[HttpGet(\"{guid}\")]");
+						lines.Append($"\n\t\tpublic ActionResult<IEnumerable<{entityName}>> GetByParent(string guid)");
+						lines.Append( "\n\t\t{");
+						lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindByParent(guid);");
+						lines.Append( "\n\t\t\tif (queryResult.Status == BrashQueryStatus.ERROR)");
+						lines.Append( "\n\t\t\t\treturn BadRequest(queryResult.Message);");
+						lines.Append( "\n\t\t");
+						lines.Append( "\n\t\t\treturn queryResult.Models;");
+						lines.Append( "\n\t\t}");
+						lines.Append( "\n\t\t");
+
+						break;
+					case Global.IDPATTERN_ASKVERSION:
+						lines.Append($"\n\t\t// GET /api/{entityName}ByParent/7dd44fed-bf64-42d8-a6ea-04357c73482e/12");
+						lines.Append( "\n\t\t[HttpGet(\"{guid}, {recordVersion}\")]");
+						lines.Append($"\n\t\tpublic ActionResult<IEnumerable<{entityName}>> GetByParent(string guid, double recordVersion)");
+						lines.Append( "\n\t\t{");
+						lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindByParent(guid, recordVersion);");
+						lines.Append( "\n\t\t\tif (queryResult.Status == BrashQueryStatus.ERROR)");
+						lines.Append( "\n\t\t\t\treturn BadRequest(queryResult.Message);");
+						lines.Append( "\n\t\t");
+						lines.Append( "\n\t\t\treturn queryResult.Models;");
+						lines.Append( "\n\t\t}");
+						lines.Append( "\n\t\t");
+
+						break;
+					case Global.IDPATTERN_ASKID:
+					default:
+						lines.Append($"\n\t\t// GET /api/{entityName}ByParent/4");
+						lines.Append( "\n\t\t[HttpGet(\"{id}\")]");
+						lines.Append($"\n\t\tpublic ActionResult<IEnumerable<{entityName}>> GetByParent(int id)");
+						lines.Append( "\n\t\t{");
+						lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindByParent(id);");
+						lines.Append( "\n\t\t\tif (queryResult.Status == BrashQueryStatus.ERROR)");
+						lines.Append( "\n\t\t\t\treturn BadRequest(queryResult.Message);");
+						lines.Append( "\n\t\t");
+						lines.Append( "\n\t\t\treturn queryResult.Models;");
+						lines.Append( "\n\t\t}");
+						lines.Append( "\n\t\t");
+
+						break;
+				}
+			}
+
+			return lines.ToString();
+		}
+
 		public string TplCsApiAskId(
 			string domain
 			, Structure entity
-			, string idPattern
+			, Structure parent
 			)
         {
+			string idPattern = entity.IdPattern ?? Global.IDPATTERN_ASKID;
 			string entityName = entity.Name;
 			string entityInstanceName = ToLowerFirstChar(entity.Name);
-            StringBuilder lines = new StringBuilder();
+			StringBuilder lines = new StringBuilder();
 
 			lines.Append(  $"using System.Collections.Generic;");
 			lines.Append($"\nusing Microsoft.AspNetCore.Mvc;");
@@ -296,6 +363,11 @@ namespace brashcli.Process
 			lines.Append( "\n\t\t");
 			lines.Append( "\n\t\t\treturn serviceResult.Model;");
 			lines.Append( "\n\t\t}");
+
+
+			lines.Append( GetFindByParentRoute(domain, entity, parent));
+
+
 			lines.Append( "\n\t}");
 			lines.Append( "\n}");
 
@@ -305,9 +377,10 @@ namespace brashcli.Process
 		public string TplCsApiAskGuid(
 			string domain
 			, Structure entity
-			, string idPattern
+			, Structure parent
 			)
         {
+			string idPattern = entity.IdPattern ?? Global.IDPATTERN_ASKID;
 			string entityName = entity.Name;
 			string entityInstanceName = ToLowerFirstChar(entity.Name);
             StringBuilder lines = new StringBuilder();
@@ -412,6 +485,11 @@ namespace brashcli.Process
 			lines.Append( "\n\t\t");
 			lines.Append( "\n\t\t\treturn serviceResult.Model;");
 			lines.Append( "\n\t\t}");
+
+
+			lines.Append( GetFindByParentRoute(domain, entity, parent));
+
+
 			lines.Append( "\n\t}");
 			lines.Append( "\n}");
 
@@ -421,9 +499,10 @@ namespace brashcli.Process
 		public string TplCsApiAskVersion(
 			string domain
 			, Structure entity
-			, string idPattern
+			, Structure parent
 			)
         {
+			string idPattern = entity.IdPattern ?? Global.IDPATTERN_ASKID;
 			string entityName = entity.Name;
 			string entityInstanceName = ToLowerFirstChar(entity.Name);
             StringBuilder lines = new StringBuilder();
@@ -531,6 +610,11 @@ namespace brashcli.Process
 			lines.Append( "\n\t\t");
 			lines.Append( "\n\t\t\treturn serviceResult.Model;");
 			lines.Append( "\n\t\t}");
+
+
+			lines.Append( GetFindByParentRoute(domain, entity, parent));
+
+
 			lines.Append( "\n\t}");
 			lines.Append( "\n}");
 

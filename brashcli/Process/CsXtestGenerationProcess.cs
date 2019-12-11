@@ -1351,7 +1351,7 @@ namespace brashcli.Process
 						_ruleStatements.Add($"m.IsDeleted = false;");
 						break;
 					case Global.TRACKINGPATTERN_VERSION:
-						_ruleStatements.Add($"RecordState = \"Created\"; // Created, Updated, Deleted, Restored");
+						_ruleStatements.Add($"m.RecordState = \"Created\"; // Created, Updated, Deleted, Restored");
 						_ruleStatements.Add($"m.PerformedBy = f.Internet.UserName(f.Name.FirstName(0), f.Name.LastName(0));");
 						_ruleStatements.Add($"m.PerformedOn = f.Date.Past();");
 						_ruleStatements.Add("m.PerformedReason = f.PickRandomParam(new string[] { \"Reason 1\", \"Reason 2\", \"Reason 3\"});");
