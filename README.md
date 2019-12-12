@@ -62,7 +62,7 @@ Each object represents a table.
     * [x] Repository
     * [x] Service
     * [x] Tests
-    * [ ] Api
+    * [x] Api
     * [ ] Api Client
   * [ ] AskGuid - Anonymous Surrogate Key Guid pattern uses a string column called _table_Guid as the primary key
     * [x] Database
@@ -72,7 +72,7 @@ Each object represents a table.
     * [x] Repository
     * [x] Service
     * [x] Tests
-    * [ ] Api
+    * [x] Api
     * [ ] Api Client
   * [ ] AskVersion - Anonymous Surrogate Key Version pattern uses an id, guid, version, and current indicator column
     * [x] Database
@@ -82,36 +82,13 @@ Each object represents a table.
     * [x] Repository
     * [x] Service
     * [x] Tests
-    * [ ] Api
+    * [x] Api
     * [ ] Api Client
 * [ ] TrackingPattern - is a set columns to be added to the table for tracking purposes
   * [x] None - (Default) No additional fields
   * [ ] Audit - fields CreatedBy, CreatedOn, UpdatedBy, UpdatedOn
-    * [ ] Database
-    * [ ] Domain
-    * [ ] Repository Sql
-    * [ ] Repository
-    * [ ] Service
-    * [ ] Tests
-    * [ ] Api
-    * [ ] Api Client
   * [ ] AuditPreserve - CreatedBy, CreatedOn, UpdatedBy, UpdatedOn, IsDeleted
-    * [ ] Database
-    * [ ] Domain
-    * [ ] Repository Sql
-    * [ ] Repository
-    * [ ] Service
-    * [ ] Tests
-    * [ ] Api
-    * [ ] Api Client
   * [ ] AuditVersion - fields RecordState (Created, Updated, Deleted, Restored), PerformedBy, PeformedOn, PerformedReason
-    * [ ] Database
-    * [ ] Repository Sql
-    * [ ] Repository
-    * [ ] Service
-    * [ ] Tests
-    * [ ] Api
-    * [ ] Api Client
 * [x] AdditionalPatterns - an array of Pattern names to add additional columns and behavior
   * [x] Choice - fields ChoiceName, OrderNo, IsDisabled
 * [x] Fields - an array of field definitions to make addional columns on the table
@@ -167,36 +144,36 @@ Extensions and Children use the structure pattern.
 They can each have extensions and children.
 
 * [ ] Api
-  * [ ] AskId
+  * [x] AskId
     * [x] List
     * [x] Get
     * [x] Create
     * [x] Update
     * [x] Delete
-    * [ ] Referential
-      * [ ] Find By AskId Parent
-      * [ ] Find By AskGuid Parent
-      * [ ] Find By AskVersion Parent
-  * [ ] AskGuid
-    * [ ] List
-    * [ ] Get
-    * [ ] Create
-    * [ ] Update
-    * [ ] Delete
-    * [ ] Referential
-      * [ ] Find By AskId Parent
-      * [ ] Find By AskGuid Parent
-      * [ ] Find By AskVersion Parent
-  * [ ] AskVersion
-    * [ ] List
-    * [ ] Get
-    * [ ] Create
-    * [ ] Update
-    * [ ] Delete
-    * [ ] Referential
-      * [ ] Find By AskId Parent
-      * [ ] Find By AskGuid Parent
-      * [ ] Find By AskVersion Parent
+    * [x] Referential
+      * [x] Find By AskId Parent
+      * [x] Find By AskGuid Parent
+      * [x] Find By AskVersion Parent
+  * [x] AskGuid
+    * [x] List
+    * [x] Get
+    * [x] Create
+    * [x] Update
+    * [x] Delete
+    * [x] Referential
+      * [x] Find By AskId Parent
+      * [x] Find By AskGuid Parent
+      * [x] Find By AskVersion Parent
+  * [x] AskVersion
+    * [x] List
+    * [x] Get
+    * [x] Create
+    * [x] Update
+    * [x] Delete
+    * [x] Referential
+      * [x] Find By AskId Parent
+      * [x] Find By AskGuid Parent
+      * [x] Find By AskVersion Parent
 
 ## Suggested Tools
 

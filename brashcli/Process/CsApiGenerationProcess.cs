@@ -99,6 +99,13 @@ namespace brashcli.Process
 				System.IO.Path.Combine(_pathApiDirectory, "BrashConfigure.cs")
 				, TplCsApiBrashConfigure(_domainStructure.Domain, _entities));
 
+			// Make BrashConfigure.cs
+			System.IO.File.WriteAllText( 
+				System.IO.Path.Combine(_pathApiDirectory, "BrashApiAuth.cs")
+				, TplCsApiBrashApiAuth(_domainStructure.Domain));
+
+
+
 		}
 
 		private void MakeApiFiles( Structure parent, Structure entity)
@@ -219,10 +226,10 @@ namespace brashcli.Process
 						break;
 					case Global.IDPATTERN_ASKVERSION:
 						lines.Append($"\n\t\t// GET /api/{entityName}ByParent/7dd44fed-bf64-42d8-a6ea-04357c73482e/12");
-						lines.Append( "\n\t\t[HttpGet(\"{guid}, {recordVersion}\")]");
-						lines.Append($"\n\t\tpublic ActionResult<IEnumerable<{entityName}>> GetByParent(string guid, double recordVersion)");
+						lines.Append( "\n\t\t[HttpGet(\"{guid}/{version}\")]");
+						lines.Append($"\n\t\tpublic ActionResult<IEnumerable<{entityName}>> GetByParent(string guid, decimal version)");
 						lines.Append( "\n\t\t{");
-						lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindByParent(guid, recordVersion);");
+						lines.Append($"\n\t\t\tvar queryResult = _{entityInstanceName}Service.FindByParent(guid, version);");
 						lines.Append( "\n\t\t\tif (queryResult.Status == BrashQueryStatus.ERROR)");
 						lines.Append( "\n\t\t\t\treturn BadRequest(queryResult.Message);");
 						lines.Append( "\n\t\t");
@@ -264,6 +271,7 @@ namespace brashcli.Process
 			StringBuilder lines = new StringBuilder();
 
 			lines.Append(  $"using System.Collections.Generic;");
+			lines.Append($"\nusing Microsoft.AspNetCore.Authorization;");
 			lines.Append($"\nusing Microsoft.AspNetCore.Mvc;");
 			lines.Append($"\nusing Brash.Infrastructure;");
 			lines.Append($"\nusing {domain}.Domain.Model;");
@@ -271,6 +279,7 @@ namespace brashcli.Process
 			lines.Append($"\n");
 			lines.Append($"\nnamespace {domain}.Api.Controllers");
 			lines.Append( "\n{");
+			lines.Append( "\n\t[Authorize]");
 			lines.Append( "\n\t[Route(\"api/[controller]\")]");
 			lines.Append($"\n\t[ApiController]");
 			lines.Append($"\n\tpublic class {entityName}Controller : ControllerBase");
@@ -386,6 +395,7 @@ namespace brashcli.Process
             StringBuilder lines = new StringBuilder();
 
 			lines.Append(  $"using System.Collections.Generic;");
+			lines.Append($"\nusing Microsoft.AspNetCore.Authorization;");
 			lines.Append($"\nusing Microsoft.AspNetCore.Mvc;");
 			lines.Append($"\nusing Brash.Infrastructure;");
 			lines.Append($"\nusing {domain}.Domain.Model;");
@@ -393,6 +403,7 @@ namespace brashcli.Process
 			lines.Append($"\n");
 			lines.Append($"\nnamespace {domain}.Api.Controllers");
 			lines.Append( "\n{");
+			lines.Append( "\n\t[Authorize]");
 			lines.Append( "\n\t[Route(\"api/[controller]\")]");
 			lines.Append($"\n\t[ApiController]");
 			lines.Append($"\n\tpublic class {entityName}Controller : ControllerBase");
@@ -508,6 +519,7 @@ namespace brashcli.Process
             StringBuilder lines = new StringBuilder();
 
 			lines.Append(  $"using System.Collections.Generic;");
+			lines.Append($"\nusing Microsoft.AspNetCore.Authorization;");
 			lines.Append($"\nusing Microsoft.AspNetCore.Mvc;");
 			lines.Append($"\nusing Brash.Infrastructure;");
 			lines.Append($"\nusing {domain}.Domain.Model;");
@@ -515,6 +527,7 @@ namespace brashcli.Process
 			lines.Append($"\n");
 			lines.Append($"\nnamespace {domain}.Api.Controllers");
 			lines.Append( "\n{");
+			lines.Append( "\n\t[Authorize]");
 			lines.Append( "\n\t[Route(\"api/[controller]\")]");
 			lines.Append($"\n\t[ApiController]");
 			lines.Append($"\n\tpublic class {entityName}Controller : ControllerBase");
@@ -608,7 +621,7 @@ namespace brashcli.Process
 			lines.Append( "\n\t\t}");
 			lines.Append( "\n\t\t");
 			lines.Append($"\n\t\t// DELETE api/{entityName}/7dd44fed-bf64-42d8-a6ea-04357c73482e/1");
-			lines.Append( "\n\t\t[HttpDelete(\"{guid},{version}\")]");
+			lines.Append( "\n\t\t[HttpDelete(\"{guid}/{version}\")]");
 			lines.Append($"\n\t\tpublic ActionResult<{entityName}> Delete(string guid, decimal version)");
 			lines.Append( "\n\t\t{");
 			lines.Append($"\n\t\t\tvar model = new {entityName}()");
@@ -674,6 +687,7 @@ namespace " + domain + @".Api
 		{
 			return @"using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -694,12 +708,17 @@ namespace " + domain + @".Api
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+
+			// configure basic authentication 
+            services.AddAuthentication(""BasicAuthentication"")
+                .AddScheme<AuthenticationSchemeOptions, BrashBasicAuthenticationHandler>(""BasicAuthentication"", null);
         }
 
         public void ConfigureContainer(ContainerBuilder containerBuilder)
         {
             // wire up using autofac specific APIs here
             BrashConfigure.LoadContainer( containerBuilder);
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -713,6 +732,8 @@ namespace " + domain + @".Api
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
+			app.UseAuthentication();
 
             app.UseAuthorization();
 
@@ -788,9 +809,128 @@ namespace " + domain + @".Api
             	lines.Append( $"\n\t\t\t");
 			}
 
+			lines.Append( $"\n\t\t\t// BasicAuth");
+			lines.Append( $"\n\t\t\tcontainerBuilder.Register<IBrashApiAuthService>((c) => {{");
+			lines.Append( $"\n\t\t\t\treturn new BrashApiAuthService().AddAuthAccount(");
+			lines.Append( $"\n\t\t\t\t\tnew BrashApiAuthModel(){{");
+			lines.Append( $"\n\t\t\t\t\t\tApiAuthId = 1");
+			lines.Append( $"\n\t\t\t\t\t\t, ApiAuthName = \"ADMIN\"");
+			lines.Append( $"\n\t\t\t\t\t\t, ApiAuthPass = \"PASS\"");
+			lines.Append( $"\n\t\t\t\t\t}});");
+			lines.Append( $"\n\t\t\t\t}});");
+
 			lines.Append(  "\n\t\t}");
 			lines.Append(  "\n\t}");
 			lines.Append(  "\n}");
+
+			return lines.ToString();
+		}
+
+		public string TplCsApiBrashApiAuth(string domain)
+		{
+			StringBuilder lines = new StringBuilder();
+
+			lines.Append(
+@"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Net.Http.Headers;
+using System.Security.Claims;
+using System.Text;
+using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace " + domain + @".Api
+{
+    public class BrashApiAuthModel
+    {
+        public int ApiAuthId { get; set; }
+        public string ApiAuthName { get; set; }
+        public string ApiAuthPass { get; set; }
+    }
+
+    public interface IBrashApiAuthService
+    {
+        Task<BrashApiAuthModel> Authenticate(string apiAuthName, string apiAuthPass);
+    }
+
+    public class BrashApiAuthService : IBrashApiAuthService
+    {
+        private List<BrashApiAuthModel> _accounts = new List<BrashApiAuthModel>();
+
+        public BrashApiAuthService AddAuthAccount(BrashApiAuthModel account)
+        {
+            _accounts.Add(account);
+            return this;
+        }
+
+        public async Task<BrashApiAuthModel> Authenticate(string apiAuthName, string apiAuthPass)
+        {
+            var auth = await Task.Run(() => _accounts.SingleOrDefault(x => x.ApiAuthName == apiAuthName && x.ApiAuthPass == apiAuthPass));
+
+            if (auth == null)
+                return null;
+
+            return auth;
+        }
+    }
+
+    public class BrashBasicAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+    {
+        private readonly IBrashApiAuthService _apiAuthService;
+
+        public BrashBasicAuthenticationHandler(
+            IOptionsMonitor<AuthenticationSchemeOptions> options,
+            ILoggerFactory logger,
+            UrlEncoder encoder,
+            ISystemClock clock,
+            IBrashApiAuthService apiAuthService)
+            : base(options, logger, encoder, clock)
+        {
+            _apiAuthService = apiAuthService;
+        }
+
+        protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
+        {
+            if (!Request.Headers.ContainsKey(""Authorization""))
+                return AuthenticateResult.Fail(""Missing Authorization Header"");
+
+            BrashApiAuthModel user = null;
+            try
+            {
+                var authHeader = AuthenticationHeaderValue.Parse(Request.Headers[""Authorization""]);
+                var credentialBytes = Convert.FromBase64String(authHeader.Parameter);
+                var credentials = Encoding.UTF8.GetString(credentialBytes).Split(new[] { ':' }, 2);
+                var apiAuthName = credentials[0];
+                var apiAuthPass = credentials[1];
+
+                user = await _apiAuthService.Authenticate(apiAuthName, apiAuthPass);
+            }
+            catch
+            {
+                return AuthenticateResult.Fail(""Invalid Authorization Header"");
+            }
+
+            if (user == null)
+                return AuthenticateResult.Fail(""Invalid AuthName or Password"");
+
+            var claims = new[] {
+                new Claim(ClaimTypes.NameIdentifier, user.ApiAuthId.ToString()),
+                new Claim(ClaimTypes.Name, user.ApiAuthName),
+            };
+            var identity = new ClaimsIdentity(claims, Scheme.Name);
+            var principal = new ClaimsPrincipal(identity);
+            var ticket = new AuthenticationTicket(principal, Scheme.Name);
+
+            return AuthenticateResult.Success(ticket);
+        }
+    }
+}
+");
 
 			return lines.ToString();
 		}
