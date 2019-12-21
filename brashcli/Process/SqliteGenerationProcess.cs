@@ -335,7 +335,6 @@ namespace brashcli.Process
 
 			switch(field.Type)
 			{
-				case "D":
 				case "N":
 					template = $"\n\t, {field.Name} NUMERIC";
 					break;
@@ -347,6 +346,9 @@ namespace brashcli.Process
 					break;
 				case "B":
 					template = $"\n\t, {field.Name} BLOB";
+					break;
+				case "D":
+					template = $"\n\t, {field.Name} TIMESTAMP";
 					break;
 				case "S":
 				case "C":
