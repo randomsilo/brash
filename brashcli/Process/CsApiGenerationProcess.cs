@@ -87,7 +87,12 @@ namespace brashcli.Process
 			// Make Startup.cs
 			System.IO.File.WriteAllText( 
 				System.IO.Path.Combine(_pathApiDirectory, "Startup.cs")
-				, TplCsApiStartup(_domainStructure.Domain));			
+				, TplCsApiStartup(_domainStructure.Domain));
+
+			// Make launchSettings.json
+			System.IO.File.WriteAllText( 
+				System.IO.Path.Combine(_pathApiDirectory, "Properties", "launchSettings.json")
+				, TplCsApiLaunchSettings(_domainStructure.Domain));			
 			
 			foreach( var entity in _domainStructure.Structure)
 			{
@@ -729,6 +734,15 @@ namespace " + domain + @".Api
                 app.UseDeveloperExceptionPage();
             }
 
+			app.UseCors(builder =>
+            {
+                builder
+                    .WithOrigins(""" + _options.DevSite + @""", """ + _options.WebSite + @""")
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials(); 
+            });
+
             app.UseHttpsRedirection();
 
             app.UseRouting();
@@ -744,6 +758,33 @@ namespace " + domain + @".Api
         }
     }
 }";
+		}
+
+		public string TplCsApiLaunchSettings(string domain)
+		{
+			return @"{
+  ""$schema"": ""http://json.schemastore.org/launchsettings.json"",
+  ""iisSettings"": {
+    ""windowsAuthentication"": false,
+      ""applicationUrl"": ""http://localhost:32770"",
+    ""anonymousAuthentication"": true,
+    ""iisExpress"": {
+      ""applicationUrl"": ""http://localhost:32770"",
+      ""sslPort"": 44335
+    }
+  },
+  ""profiles"": {
+    ""Strawman.Api"": {
+      ""commandName"": ""Project"",
+      ""launchBrowser"": false,
+      ""applicationUrl"": ""https://localhost:" + _options.ApiPort + @""",
+      ""environmentVariables"": {
+        ""ASPNETCORE_ENVIRONMENT"": ""Development""
+      }
+    }
+  }
+}
+";
 		}
 
 		public string TplCsApiBrashConfigure(string domain, List<string> entities)
@@ -814,8 +855,8 @@ namespace " + domain + @".Api
 			lines.Append( $"\n\t\t\t\treturn new BrashApiAuthService().AddAuthAccount(");
 			lines.Append( $"\n\t\t\t\t\tnew BrashApiAuthModel(){{");
 			lines.Append( $"\n\t\t\t\t\t\tApiAuthId = 1");
-			lines.Append( $"\n\t\t\t\t\t\t, ApiAuthName = \"ADMIN\"");
-			lines.Append( $"\n\t\t\t\t\t\t, ApiAuthPass = \"PASS\"");
+			lines.Append( $"\n\t\t\t\t\t\t, ApiAuthName = \"{_options.User}\"");
+			lines.Append( $"\n\t\t\t\t\t\t, ApiAuthPass = \"{_options.Pass}\"");
 			lines.Append( $"\n\t\t\t\t\t}});");
 			lines.Append( $"\n\t\t\t\t}});");
 

@@ -40,7 +40,8 @@ dotnet run cs-repo-sqlite --file /shop/randomsilo/MyProject/structure.json
 dotnet run cs-xtest-sqlite --file /shop/randomsilo/MyProject/structure.json
 
 # generate api classes
-dotnet run cs-api-sqlite --file /shop/randomsilo/MyProject/structure.json
+## - Startup.cs will need to be modified if more than 1 public website will make CORS requests
+dotnet run cs-api-sqlite --file /shop/randomsilo/MyProject/structure.json --user ADMIN_USER --pass PASS1234 --port 6100 --dev-site https://localhost:5001 --web-site https://myproject.ctrlshiftesc.com
 
 ```
 
