@@ -72,7 +72,6 @@ PROJECT=" + projectName + @"
 # brashcli - generated project initialization script
 
 ## File System
-mkdir -p $PROJECT.Web
 mkdir -p $PROJECT.Api
 mkdir -p $PROJECT.Domain
 mkdir -p $PROJECT.Infrastructure
@@ -82,10 +81,6 @@ mkdir -p $PROJECT.Infrastructure.Test/TestOutput
 dotnet new sln
 
 ## Project
-cd $PROJECT.Web
-dotnet new mvc
-cd ..
-
 cd $PROJECT.Api
 dotnet new webapi
 cd ..
@@ -103,7 +98,6 @@ dotnet new xunit
 cd ..
 
 ## Projects to Solution
-dotnet sln $PROJECT.sln add $PROJECT.Web/$PROJECT.Web.csproj
 dotnet sln $PROJECT.sln add $PROJECT.Api/$PROJECT.Api.csproj
 dotnet sln $PROJECT.sln add $PROJECT.Domain/$PROJECT.Domain.csproj
 dotnet sln $PROJECT.sln add $PROJECT.Infrastructure/$PROJECT.Infrastructure.csproj

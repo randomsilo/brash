@@ -7,6 +7,11 @@ CoPilot is a DOT driver tracking application.
 ```bash
 dotnet run project-init -n CoPilot -d /shop/randomsilo/CoPilot
 dotnet run data-init -n CoPilot -d /shop/randomsilo/CoPilot
+
+# make c# projects
+# cd /shop/randomsilo/MyProject
+# . ./init.sh
+
 dotnet run sqlite-gen --file /shop/randomsilo/CoPilot/structure.json
 
 ## - run combine.sh in the sql directory to create a single file for execution

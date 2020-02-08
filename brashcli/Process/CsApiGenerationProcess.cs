@@ -714,7 +714,7 @@ namespace " + domain + @".Api
         {
             services.AddControllers();
 
-			// configure basic authentication 
+			      // configure basic authentication 
             services.AddAuthentication(""BasicAuthentication"")
                 .AddScheme<AuthenticationSchemeOptions, BrashBasicAuthenticationHandler>(""BasicAuthentication"", null);
         }
@@ -723,7 +723,6 @@ namespace " + domain + @".Api
         {
             // wire up using autofac specific APIs here
             BrashConfigure.LoadContainer( containerBuilder);
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -734,7 +733,7 @@ namespace " + domain + @".Api
                 app.UseDeveloperExceptionPage();
             }
 
-			app.UseCors(builder =>
+			      app.UseCors(builder =>
             {
                 builder
                     .WithOrigins(""" + _options.DevSite + @""", """ + _options.WebSite + @""")
@@ -743,11 +742,14 @@ namespace " + domain + @".Api
                     .AllowCredentials(); 
             });
 
-            app.UseHttpsRedirection();
+            if (!env.IsDevelopment())
+            {
+                app.UseHttpsRedirection();
+            }
 
             app.UseRouting();
 
-			app.UseAuthentication();
+			      app.UseAuthentication();
 
             app.UseAuthorization();
 
@@ -774,7 +776,7 @@ namespace " + domain + @".Api
     }
   },
   ""profiles"": {
-    ""Strawman.Api"": {
+    """ + domain + @".Api"": {
       ""commandName"": ""Project"",
       ""launchBrowser"": false,
       ""applicationUrl"": ""https://localhost:" + _options.ApiPort + @""",
@@ -845,9 +847,9 @@ namespace " + domain + @".Api
 			{
 				lines.Append( $"\n\t\t\t// Container Registar: {entityName}");
 				lines.Append( "\n\t\t\tcontainerBuilder.Register<" + entityName + "RepositorySql>((c) => { return new " + entityName + "RepositorySql(); });");
-            	lines.Append( "\n\t\t\tcontainerBuilder.Register<" + entityName + "Repository>((c) => { return new " + entityName + "Repository( c.Resolve<IManageDatabase>(), c.Resolve<" + entityName + "RepositorySql>(), c.Resolve<Serilog.ILogger>()); });");
-            	lines.Append( "\n\t\t\tcontainerBuilder.Register<" + entityName + "Service>((c) => { return new " + entityName + "Service( c.Resolve<" + entityName + "Repository>(), c.Resolve<Serilog.ILogger>()); });");
-            	lines.Append( $"\n\t\t\t");
+        lines.Append( "\n\t\t\tcontainerBuilder.Register<" + entityName + "Repository>((c) => { return new " + entityName + "Repository( c.Resolve<IManageDatabase>(), c.Resolve<" + entityName + "RepositorySql>(), c.Resolve<Serilog.ILogger>()); });");
+        lines.Append( "\n\t\t\tcontainerBuilder.Register<" + entityName + "Service>((c) => { return new " + entityName + "Service( c.Resolve<" + entityName + "Repository>(), c.Resolve<Serilog.ILogger>()); });");
+        lines.Append( $"\n\t\t\t");
 			}
 
 			lines.Append( $"\n\t\t\t// BasicAuth");

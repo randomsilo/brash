@@ -426,7 +426,5 @@ namespace Brash.Infrastructure.Sqlite
 
             return models;
         }
-
-        
     }
 }
