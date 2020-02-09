@@ -1,10 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CommandLine;
-using Newtonsoft.Json;
 using Serilog;
 using brashcli.Option;
 
@@ -31,19 +25,19 @@ namespace brashcli.Process
             _logger.Debug("DataInitializationProcess: start");
             do
             {
-                try 
+                try
                 {
                     CheckProjectDirectory();
                     MakeDataJsonFile();
                 }
-                catch(Exception exception)
+                catch (Exception exception)
                 {
                     _logger.Error(exception, "DataInitializationProcess, unhandled exception caught.");
                     returnCode = -1;
                     break;
                 }
 
-            } while(false);
+            } while (false);
             _logger.Debug("DataInitializationProcess: end");
 
             return returnCode;
@@ -51,15 +45,15 @@ namespace brashcli.Process
 
         private void CheckProjectDirectory()
         {
-            if (!System.IO.Directory.Exists(_options.DirectoryName)) 
-            { 
+            if (!System.IO.Directory.Exists(_options.DirectoryName))
+            {
                 throw new Exception($"{_options.DirectoryName} is missing. Try: brashcli project-init -n {_options.ProjectName} -d {_options.DirectoryName}");
             }
         }
 
         private void MakeDataJsonFile()
         {
-            System.IO.File.WriteAllText( $"{_options.DirectoryName}/structure.json", TplDataJsonFile());
+            System.IO.File.WriteAllText($"{_options.DirectoryName}/structure.json", TplDataJsonFile());
         }
 
         private string TplDataJsonFile()

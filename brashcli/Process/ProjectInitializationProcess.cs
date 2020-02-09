@@ -1,10 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CommandLine;
-using Newtonsoft.Json;
 using Serilog;
 using brashcli.Option;
 
@@ -31,19 +25,19 @@ namespace brashcli.Process
             _logger.Debug("CreateProjectInitializeScript: start");
             do
             {
-                try 
+                try
                 {
                     MakeProjectDirectory();
                     MakeProjectScript();
                 }
-                catch(Exception exception)
+                catch (Exception exception)
                 {
                     _logger.Error(exception, "CreateProjectInitializeScript, unhandled exception caught.");
                     returnCode = -1;
                     break;
                 }
 
-            } while(false);
+            } while (false);
             _logger.Debug("CreateProjectInitializeScript: end");
 
             return returnCode;
@@ -51,8 +45,8 @@ namespace brashcli.Process
 
         private void MakeProjectDirectory()
         {
-            if (System.IO.Directory.Exists(_options.DirectoryName)) 
-            { 
+            if (System.IO.Directory.Exists(_options.DirectoryName))
+            {
                 System.IO.Directory.Delete(_options.DirectoryName, true);
                 System.Threading.Thread.Sleep(2000);
             }
@@ -61,7 +55,7 @@ namespace brashcli.Process
 
         private void MakeProjectScript()
         {
-            System.IO.File.WriteAllText( $"{_options.DirectoryName}/init.sh", TplProjectScript(_options.ProjectName));
+            System.IO.File.WriteAllText($"{_options.DirectoryName}/init.sh", TplProjectScript(_options.ProjectName));
         }
 
         private string TplProjectScript(string projectName)

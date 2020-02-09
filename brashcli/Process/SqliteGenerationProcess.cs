@@ -15,17 +15,17 @@ namespace brashcli.Process
     {
         private ILogger _logger;
         private SqliteGeneration _options;
-		private string _pathProject;
-		private string _pathSql;
-		private DomainStructure _domainStructure;
-		private Dictionary<string,string> _tablePrimaryKeyDataType = new Dictionary<string, string>();
-		private List<string> _tableCreationOrder = new List<string>();
+        private string _pathProject;
+        private string _pathSql;
+        private DomainStructure _domainStructure;
+        private Dictionary<string, string> _tablePrimaryKeyDataType = new Dictionary<string, string>();
+        private List<string> _tableCreationOrder = new List<string>();
         public SqliteGenerationProcess(ILogger logger, SqliteGeneration options)
         {
             _logger = logger;
             _options = options;
-			_pathProject = System.IO.Path.GetDirectoryName(_options.FilePath);
-			_pathSql = System.IO.Path.Combine(_pathProject, "sql/sqlite");
+            _pathProject = System.IO.Path.GetDirectoryName(_options.FilePath);
+            _pathSql = System.IO.Path.Combine(_pathProject, "sql/sqlite");
         }
 
         public int Execute()
@@ -35,21 +35,21 @@ namespace brashcli.Process
             _logger.Debug("SqlGenerationProcess: start");
             do
             {
-                try 
+                try
                 {
-					ReadDataJsonFile();
+                    ReadDataJsonFile();
                     MakeSqlDirectory();
-					CreateSqlFileCreateTable();
-					MakeCombinedSqlFileScript();
+                    CreateSqlFileCreateTable();
+                    MakeCombinedSqlFileScript();
                 }
-                catch(Exception exception)
+                catch (Exception exception)
                 {
                     _logger.Error(exception, "SqlGenerationProcess, unhandled exception caught.");
                     returnCode = -1;
                     break;
                 }
 
-            } while(false);
+            } while (false);
             _logger.Debug("SqlGenerationProcess: end");
 
             return returnCode;
@@ -57,139 +57,139 @@ namespace brashcli.Process
 
         private void MakeSqlDirectory()
         {
-			System.IO.Directory.CreateDirectory(_pathSql);
+            System.IO.Directory.CreateDirectory(_pathSql);
         }
 
         private void ReadDataJsonFile()
         {
-			string json = System.IO.File.ReadAllText(_options.FilePath);
-			_domainStructure = JsonConvert.DeserializeObject<DomainStructure>(json, new JsonSerializerSettings()
-			{
-				MissingMemberHandling = MissingMemberHandling.Ignore
-			});
-			
-			_logger.Information($"Domain: {_domainStructure.Domain}, Structures: {_domainStructure.Structure.Count}");
+            string json = System.IO.File.ReadAllText(_options.FilePath);
+            _domainStructure = JsonConvert.DeserializeObject<DomainStructure>(json, new JsonSerializerSettings()
+            {
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            });
+
+            _logger.Information($"Domain: {_domainStructure.Domain}, Structures: {_domainStructure.Structure.Count}");
         }
 
-		private void CreateSqlFileCreateTable()
-		{
-			_logger.Debug("CreateSqlFileCreateTable");
-			
-			foreach( var entry in _domainStructure.Structure)
-			{
-				MakeCreateTableSqlFile(null, entry);
-			}
-		}
+        private void CreateSqlFileCreateTable()
+        {
+            _logger.Debug("CreateSqlFileCreateTable");
 
-		private void MakeCreateTableSqlFile( Structure parent, Structure entry)
-		{
-			_logger.Debug($"{entry.Name}");
-			if (parent != null)
-				_logger.Debug($"\t Parent: {parent.Name}");
+            foreach (var entry in _domainStructure.Structure)
+            {
+                MakeCreateTableSqlFile(null, entry);
+            }
+        }
 
-			MakeCreateTableSql(parent, entry);
-			AddAdditionalSql(entry);
-			AddChoicesSql(entry);
-			AddTableName(entry);
-			
-			if (entry.Children != null && entry.Children.Count > 0)
-			{
-				foreach( var child in entry.Children)
-				{
-					MakeCreateTableSqlFile(entry, child);
-				}
-			}
-			
-			if (entry.Extensions != null && entry.Extensions.Count > 0)
-			{
-				foreach( var extension in entry.Extensions)
-				{
-					MakeCreateTableSqlFile(entry, extension);
-				}
-			}
-		}
+        private void MakeCreateTableSqlFile(Structure parent, Structure entry)
+        {
+            _logger.Debug($"{entry.Name}");
+            if (parent != null)
+                _logger.Debug($"\t Parent: {parent.Name}");
 
-		public string MakeEntryFilePath(Structure entry)
-		{
-			return System.IO.Path.Combine(_pathSql, entry.Name + ".sql");
-		}
+            MakeCreateTableSql(parent, entry);
+            AddAdditionalSql(entry);
+            AddChoicesSql(entry);
+            AddTableName(entry);
 
-		private void MakeCreateTableSql(Structure parent, Structure entry)
-		{
-			string fileNamePath = MakeEntryFilePath(entry);
-			StringBuilder lines = new StringBuilder();
-			
-			SaveTableIdDataType(entry);
+            if (entry.Children != null && entry.Children.Count > 0)
+            {
+                foreach (var child in entry.Children)
+                {
+                    MakeCreateTableSqlFile(entry, child);
+                }
+            }
 
-			lines.Append( TplCreateTableStart(
-				_domainStructure.Domain
-				, entry.Name
-				, GetIdPattern(entry)
-				, GetParentPattern(parent)
-				, GetAdditionalPattern(entry)
-				, GetFieldsPattern(entry)
-				, GetReferences(entry)
-				, GetTrackingPattern(entry)
-				, GetForeignKeyPattern(parent)
-				, GetForeignKeyReferencePattern(entry)
-			));
-			
-			System.IO.File.WriteAllText( fileNamePath, lines.ToString());
-		}
+            if (entry.Extensions != null && entry.Extensions.Count > 0)
+            {
+                foreach (var extension in entry.Extensions)
+                {
+                    MakeCreateTableSqlFile(entry, extension);
+                }
+            }
+        }
 
-		private void AddAdditionalSql(Structure entry)
-		{
-			if (entry.AdditionalSqlStatements != null)
-			{
-				string fileNamePath = MakeEntryFilePath(entry);
-				StringBuilder sqlStatements = new StringBuilder();
+        public string MakeEntryFilePath(Structure entry)
+        {
+            return System.IO.Path.Combine(_pathSql, entry.Name + ".sql");
+        }
 
-				sqlStatements.Append("--- Additional Sql");
-				foreach( var sql in entry.AdditionalSqlStatements)
-				{
-					sqlStatements.Append( "\n" + sql);
-				}
-				sqlStatements.Append("\n\n");
+        private void MakeCreateTableSql(Structure parent, Structure entry)
+        {
+            string fileNamePath = MakeEntryFilePath(entry);
+            StringBuilder lines = new StringBuilder();
 
-				System.IO.File.AppendAllText( fileNamePath, sqlStatements.ToString());
-			}	
-		}
+            SaveTableIdDataType(entry);
 
-		private void AddChoicesSql(Structure entry)
-		{
-			if (entry.Choices != null)
-			{
-				string fileNamePath = MakeEntryFilePath(entry);
-				StringBuilder sqlStatements = new StringBuilder();
+            lines.Append(TplCreateTableStart(
+                _domainStructure.Domain
+                , entry.Name
+                , GetIdPattern(entry)
+                , GetParentPattern(parent)
+                , GetAdditionalPattern(entry)
+                , GetFieldsPattern(entry)
+                , GetReferences(entry)
+                , GetTrackingPattern(entry)
+                , GetForeignKeyPattern(parent)
+                , GetForeignKeyReferencePattern(entry)
+            ));
 
-				sqlStatements.Append("--- Choices");
-				foreach( var choice in entry.Choices)
-				{
-					sqlStatements.Append( $"\nINSERT INTO {entry.Name} (ChoiceName, OrderNo) VALUES ('{choice}', (SELECT IFNULL(MAX(OrderNo),0)+1 FROM {entry.Name}));");
-				}
-				sqlStatements.Append("\n\n");
+            System.IO.File.WriteAllText(fileNamePath, lines.ToString());
+        }
 
-				System.IO.File.AppendAllText( fileNamePath, sqlStatements.ToString());
-			}	
-		}
+        private void AddAdditionalSql(Structure entry)
+        {
+            if (entry.AdditionalSqlStatements != null)
+            {
+                string fileNamePath = MakeEntryFilePath(entry);
+                StringBuilder sqlStatements = new StringBuilder();
 
-		private void AddTableName(Structure entry)
-		{
-			_tableCreationOrder.Add(entry.Name);
-		}
+                sqlStatements.Append("--- Additional Sql");
+                foreach (var sql in entry.AdditionalSqlStatements)
+                {
+                    sqlStatements.Append("\n" + sql);
+                }
+                sqlStatements.Append("\n\n");
 
-		public string TplCreateTableStart(
-			string domain
-			, string entityName
-			, string idPattern
-			, string parentPattern
-			, string additionalPattern
-			, string fieldsPattern
-			, string references
-			, string trackingPattern
-			, string foreignKeyPattern
-			, string foreignKeyReferencePattern
-			)
+                System.IO.File.AppendAllText(fileNamePath, sqlStatements.ToString());
+            }
+        }
+
+        private void AddChoicesSql(Structure entry)
+        {
+            if (entry.Choices != null)
+            {
+                string fileNamePath = MakeEntryFilePath(entry);
+                StringBuilder sqlStatements = new StringBuilder();
+
+                sqlStatements.Append("--- Choices");
+                foreach (var choice in entry.Choices)
+                {
+                    sqlStatements.Append($"\nINSERT INTO {entry.Name} (ChoiceName, OrderNo) VALUES ('{choice}', (SELECT IFNULL(MAX(OrderNo),0)+1 FROM {entry.Name}));");
+                }
+                sqlStatements.Append("\n\n");
+
+                System.IO.File.AppendAllText(fileNamePath, sqlStatements.ToString());
+            }
+        }
+
+        private void AddTableName(Structure entry)
+        {
+            _tableCreationOrder.Add(entry.Name);
+        }
+
+        public string TplCreateTableStart(
+            string domain
+            , string entityName
+            , string idPattern
+            , string parentPattern
+            , string additionalPattern
+            , string fieldsPattern
+            , string references
+            , string trackingPattern
+            , string foreignKeyPattern
+            , string foreignKeyReferencePattern
+            )
         {
             StringBuilder lines = new StringBuilder();
 
@@ -197,16 +197,16 @@ namespace brashcli.Process
             lines.Append($"\n--- {domain}.{entityName}");
             lines.Append($"\n---");
             lines.Append($"\nCREATE TABLE {entityName} (");
-			lines.Append($"\n");
+            lines.Append($"\n");
 
-			lines.Append(idPattern);
-			lines.Append(parentPattern);
-			lines.Append(additionalPattern);
-			lines.Append(fieldsPattern);
-			lines.Append(references);
-			lines.Append(trackingPattern);
-			lines.Append(foreignKeyPattern);
-			lines.Append(foreignKeyReferencePattern);
+            lines.Append(idPattern);
+            lines.Append(parentPattern);
+            lines.Append(additionalPattern);
+            lines.Append(fieldsPattern);
+            lines.Append(references);
+            lines.Append(trackingPattern);
+            lines.Append(foreignKeyPattern);
+            lines.Append(foreignKeyReferencePattern);
 
             lines.Append($"\n);");
             lines.Append($"\n---");
@@ -215,364 +215,364 @@ namespace brashcli.Process
             return lines.ToString();
         }
 
-		private void SaveTableIdDataType(Structure entry)
-		{
-			_tablePrimaryKeyDataType.Add(entry.Name, entry.IdPattern ?? Global.IDPATTERN_ASKID);
-		}
-		
-		private string GetIdPattern(Structure entry)
-		{
-			string template = "";
-			switch(entry.IdPattern)
-			{
-				case Global.IDPATTERN_ASKGUID:
-					template = GetTemplateIdPatternAskGuid(entry);
-					break;
-				case Global.IDPATTERN_ASKVERSION:
-					template = GetTemplateIdPatternAskVersion(entry);
-					break;
-				case Global.IDPATTERN_ASKID:
-				default:
-					template = GetTemplateIdPatternAskId(entry);
-					break;
-			}
+        private void SaveTableIdDataType(Structure entry)
+        {
+            _tablePrimaryKeyDataType.Add(entry.Name, entry.IdPattern ?? Global.IDPATTERN_ASKID);
+        }
 
-			return template;
-		}
+        private string GetIdPattern(Structure entry)
+        {
+            string template = "";
+            switch (entry.IdPattern)
+            {
+                case Global.IDPATTERN_ASKGUID:
+                    template = GetTemplateIdPatternAskGuid(entry);
+                    break;
+                case Global.IDPATTERN_ASKVERSION:
+                    template = GetTemplateIdPatternAskVersion(entry);
+                    break;
+                case Global.IDPATTERN_ASKID:
+                default:
+                    template = GetTemplateIdPatternAskId(entry);
+                    break;
+            }
 
-		private string GetParentPattern(Structure entry)
-		{
-			string template = "";
-			if (entry == null)
-				return template;
+            return template;
+        }
 
-			switch(entry.IdPattern)
-			{
-				case Global.IDPATTERN_ASKGUID:
-					template = GetTemplateParentPatternAskGuid(entry);
-					break;
-				case Global.IDPATTERN_ASKVERSION:
-					template = GetTemplateParentPatternAskVersion(entry);
-					break;
-				case Global.IDPATTERN_ASKID:
-				default:
-					template = GetTemplateParentPatternAskId(entry);
-					break;
-			}
+        private string GetParentPattern(Structure entry)
+        {
+            string template = "";
+            if (entry == null)
+                return template;
 
-			return template;
-		}
+            switch (entry.IdPattern)
+            {
+                case Global.IDPATTERN_ASKGUID:
+                    template = GetTemplateParentPatternAskGuid(entry);
+                    break;
+                case Global.IDPATTERN_ASKVERSION:
+                    template = GetTemplateParentPatternAskVersion(entry);
+                    break;
+                case Global.IDPATTERN_ASKID:
+                default:
+                    template = GetTemplateParentPatternAskId(entry);
+                    break;
+            }
 
-		private string GetForeignKeyPattern(Structure entry)
-		{
-			string template = "";
-			if (entry == null)
-				return template;
+            return template;
+        }
 
-			switch(entry.IdPattern)
-			{
-				case Global.IDPATTERN_ASKGUID:
-					template = GetTemplateForeignKeyPatternAskGuid(entry);
-					break;
-				case Global.IDPATTERN_ASKVERSION:
-					template = GetTemplateForeignKeyPatternAskVersion(entry);
-					break;
-				case Global.IDPATTERN_ASKID:
-				default:
-					template = GetTemplateForeignKeyPatternAskId(entry);
-					break;
-			}
+        private string GetForeignKeyPattern(Structure entry)
+        {
+            string template = "";
+            if (entry == null)
+                return template;
 
-			return template;
-		}
+            switch (entry.IdPattern)
+            {
+                case Global.IDPATTERN_ASKGUID:
+                    template = GetTemplateForeignKeyPatternAskGuid(entry);
+                    break;
+                case Global.IDPATTERN_ASKVERSION:
+                    template = GetTemplateForeignKeyPatternAskVersion(entry);
+                    break;
+                case Global.IDPATTERN_ASKID:
+                default:
+                    template = GetTemplateForeignKeyPatternAskId(entry);
+                    break;
+            }
 
-		private string GetForeignKeyReferencePattern(Structure entry)
-		{
-			StringBuilder template = new StringBuilder();
+            return template;
+        }
 
-			if (entry.References != null)
-			{
-				foreach( var reference in entry.References)
-				{
-					template.Append( GetTemplateForeignKeyReference(reference, _tablePrimaryKeyDataType[entry.Name]));
-				}
-			}
+        private string GetForeignKeyReferencePattern(Structure entry)
+        {
+            StringBuilder template = new StringBuilder();
 
-			return template.ToString();
-		}
+            if (entry.References != null)
+            {
+                foreach (var reference in entry.References)
+                {
+                    template.Append(GetTemplateForeignKeyReference(reference, _tablePrimaryKeyDataType[entry.Name]));
+                }
+            }
 
-		private string GetAdditionalPattern(Structure entry)
-		{
-			StringBuilder template = new StringBuilder();
+            return template.ToString();
+        }
 
-			if (entry.AdditionalPatterns != null 
-				&& entry.AdditionalPatterns.Contains(Global.ADDITIONALPATTERN_CHOICE))
-			{
-				template.Append(GetTemplateAdditionalPatternChoice(entry));
-			}
+        private string GetAdditionalPattern(Structure entry)
+        {
+            StringBuilder template = new StringBuilder();
 
-			return template.ToString();
-		}
+            if (entry.AdditionalPatterns != null
+                && entry.AdditionalPatterns.Contains(Global.ADDITIONALPATTERN_CHOICE))
+            {
+                template.Append(GetTemplateAdditionalPatternChoice(entry));
+            }
 
-		private string GetFieldsPattern(Structure entry)
-		{
-			StringBuilder template = new StringBuilder();
+            return template.ToString();
+        }
 
-			if (entry.Fields != null)
-			{
-				foreach( var field in entry.Fields)
-				{
-					template.Append( GetTemplateField(field));
-				}
-			}
+        private string GetFieldsPattern(Structure entry)
+        {
+            StringBuilder template = new StringBuilder();
 
-			return template.ToString();
-		}
+            if (entry.Fields != null)
+            {
+                foreach (var field in entry.Fields)
+                {
+                    template.Append(GetTemplateField(field));
+                }
+            }
 
-		private string GetTemplateField(Field field)
-		{
-			string template = "";
+            return template.ToString();
+        }
 
-			switch(field.Type)
-			{
-				case "N":
-					template = $"\n\t, {field.Name} NUMERIC";
-					break;
-				case "F":
-					template = $"\n\t, {field.Name} REAL";
-					break;
-				case "I":
-					template = $"\n\t, {field.Name} INTEGER";
-					break;
-				case "B":
-					template = $"\n\t, {field.Name} BLOB";
-					break;
-				case "D":
-					template = $"\n\t, {field.Name} TIMESTAMP";
-					break;
-				case "S":
-				case "C":
-				case "G":
-				default:
-					template = $"\n\t, {field.Name} TEXT";
-					break;
-			}
+        private string GetTemplateField(Field field)
+        {
+            string template = "";
 
-			return template;
-		}
+            switch (field.Type)
+            {
+                case "N":
+                    template = $"\n\t, {field.Name} NUMERIC";
+                    break;
+                case "F":
+                    template = $"\n\t, {field.Name} REAL";
+                    break;
+                case "I":
+                    template = $"\n\t, {field.Name} INTEGER";
+                    break;
+                case "B":
+                    template = $"\n\t, {field.Name} BLOB";
+                    break;
+                case "D":
+                    template = $"\n\t, {field.Name} TIMESTAMP";
+                    break;
+                case "S":
+                case "C":
+                case "G":
+                default:
+                    template = $"\n\t, {field.Name} TEXT";
+                    break;
+            }
 
-		private string GetTrackingPattern(Structure entry)
-		{
-			string template = "";
+            return template;
+        }
 
-			if (entry.TrackingPattern != null)
-			{
-				switch(entry.TrackingPattern)
-				{
-					case Global.TRACKINGPATTERN_AUDIT:
-						template = GetTemplateTrackingPatternAudit(entry);
-						break;
-					case Global.TRACKINGPATTERN_AUDITPRESERVE:
-						template = GetTemplateTrackingPatternAuditPreserve(entry);
-						break;
-					case Global.TRACKINGPATTERN_VERSION:
-						template = GetTemplateTrackingPatternVersion(entry);
-						break;
-					case Global.TRACKINGPATTERN_NONE:
-					default:
-						break;
-				}
-			}
+        private string GetTrackingPattern(Structure entry)
+        {
+            string template = "";
 
-			return template;
-		}
+            if (entry.TrackingPattern != null)
+            {
+                switch (entry.TrackingPattern)
+                {
+                    case Global.TRACKINGPATTERN_AUDIT:
+                        template = GetTemplateTrackingPatternAudit(entry);
+                        break;
+                    case Global.TRACKINGPATTERN_AUDITPRESERVE:
+                        template = GetTemplateTrackingPatternAuditPreserve(entry);
+                        break;
+                    case Global.TRACKINGPATTERN_VERSION:
+                        template = GetTemplateTrackingPatternVersion(entry);
+                        break;
+                    case Global.TRACKINGPATTERN_NONE:
+                    default:
+                        break;
+                }
+            }
 
-		private string GetReferences(Structure entry)
-		{
-			StringBuilder template = new StringBuilder();
+            return template;
+        }
 
-			if (entry.References != null)
-			{
-				foreach( var reference in entry.References)
-				{
-					template.Append( GetTemplateReference(reference, _tablePrimaryKeyDataType[reference.TableName]));
-				}
-			}
+        private string GetReferences(Structure entry)
+        {
+            StringBuilder template = new StringBuilder();
 
-			return template.ToString();
-		}
+            if (entry.References != null)
+            {
+                foreach (var reference in entry.References)
+                {
+                    template.Append(GetTemplateReference(reference, _tablePrimaryKeyDataType[reference.TableName]));
+                }
+            }
 
-		private string GetTemplateReference(Reference reference, string idPattern)
-		{
-			string template = "";
-			
-			switch(idPattern)
-			{
-				case Global.IDPATTERN_ASKGUID:
-					template = $"\n\t, {reference.ColumnName}GuidRef TEXT";
-					break;
-				case Global.IDPATTERN_ASKVERSION:
-					template = $"\n\t, {reference.ColumnName}GuidRef TEXT";
-					template = $"\n\t, {reference.ColumnName}RecordVersionRef REAL";
-					break;
-				case Global.IDPATTERN_ASKID:
-				default:
-					template = $"\n\t, {reference.ColumnName}IdRef INTEGER";
-					break;
-			}
-			
-			return template;
-		}
-		private string GetTemplateIdPatternAskId( Structure entry)
+            return template.ToString();
+        }
+
+        private string GetTemplateReference(Reference reference, string idPattern)
+        {
+            string template = "";
+
+            switch (idPattern)
+            {
+                case Global.IDPATTERN_ASKGUID:
+                    template = $"\n\t, {reference.ColumnName}GuidRef TEXT";
+                    break;
+                case Global.IDPATTERN_ASKVERSION:
+                    template = $"\n\t, {reference.ColumnName}GuidRef TEXT";
+                    template = $"\n\t, {reference.ColumnName}RecordVersionRef REAL";
+                    break;
+                case Global.IDPATTERN_ASKID:
+                default:
+                    template = $"\n\t, {reference.ColumnName}IdRef INTEGER";
+                    break;
+            }
+
+            return template;
+        }
+        private string GetTemplateIdPatternAskId(Structure entry)
         {
             return $"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT";
-		}
+        }
 
-		private string GetTemplateIdPatternAskGuid( Structure entry)
+        private string GetTemplateIdPatternAskGuid(Structure entry)
         {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT");
-			sb.Append( $"\n\t, {entry.Name}Guid TEXT");
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT");
+            sb.Append($"\n\t, {entry.Name}Guid TEXT");
             return sb.ToString();
-		}
+        }
 
-		private string GetTemplateIdPatternAskVersion( Structure entry)
+        private string GetTemplateIdPatternAskVersion(Structure entry)
         {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT");
-			sb.Append( $"\n\t, {entry.Name}Guid TEXT");
-			sb.Append( $"\n\t, {entry.Name}RecordVersion REAL");
-			sb.Append( $"\n\t, IsCurrent INTEGER");
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"\t{entry.Name}Id INTEGER PRIMARY KEY AUTOINCREMENT");
+            sb.Append($"\n\t, {entry.Name}Guid TEXT");
+            sb.Append($"\n\t, {entry.Name}RecordVersion REAL");
+            sb.Append($"\n\t, IsCurrent INTEGER");
             return sb.ToString();
-		}
+        }
 
-		private string GetTemplateParentPatternAskId( Structure entry)
+        private string GetTemplateParentPatternAskId(Structure entry)
         {
             return $"\n\t, {entry.Name}Id INTEGER";
-		}
+        }
 
-		private string GetTemplateParentPatternAskGuid( Structure entry)
+        private string GetTemplateParentPatternAskGuid(Structure entry)
         {
             return $"\n\t, {entry.Name}Guid TEXT";
-		}
+        }
 
-		private string GetTemplateParentPatternAskVersion( Structure entry)
+        private string GetTemplateParentPatternAskVersion(Structure entry)
         {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, {entry.Name}Guid TEXT");
-			sb.Append( $"\n\t, {entry.Name}RecordVersion REAL");
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"\n\t, {entry.Name}Guid TEXT");
+            sb.Append($"\n\t, {entry.Name}RecordVersion REAL");
             return sb.ToString();
-		}
+        }
 
-		private string GetTemplateForeignKeyPatternAskId( Structure entry)
+        private string GetTemplateForeignKeyPatternAskId(Structure entry)
         {
             return $"\n\t, FOREIGN KEY ({entry.Name}Id) REFERENCES {entry.Name}({entry.Name}Id) ON DELETE CASCADE";
-		}
+        }
 
-		private string GetTemplateForeignKeyPatternAskGuid( Structure entry)
+        private string GetTemplateForeignKeyPatternAskGuid(Structure entry)
         {
             return $"\n\t, FOREIGN KEY ({entry.Name}Guid) REFERENCES {entry.Name}({entry.Name}Guid) ON DELETE CASCADE";
-		}
+        }
 
-		private string GetTemplateForeignKeyPatternAskVersion( Structure entry)
+        private string GetTemplateForeignKeyPatternAskVersion(Structure entry)
         {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, FOREIGN KEY ({entry.Name}Guid) REFERENCES {entry.Name}({entry.Name}Guid) ON DELETE CASCADE");
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"\n\t, FOREIGN KEY ({entry.Name}Guid) REFERENCES {entry.Name}({entry.Name}Guid) ON DELETE CASCADE");
             return sb.ToString();
-		}
+        }
 
-		private string GetTemplateForeignKeyReference(Reference reference, string idPattern)
-		{
-			string template = "";
-			
-			switch(idPattern)
-			{
-				case Global.IDPATTERN_ASKGUID:
-					template = GetTemplateForeignKeyReferencePatternAskGuid(reference);
-					break;
-				case Global.IDPATTERN_ASKVERSION:
-					template = GetTemplateForeignKeyReferencePatternAskVersion(reference);
-					break;
-				case Global.IDPATTERN_ASKID:
-				default:
-					template = GetTemplateForeignKeyReferencePatternAskId(reference);
-					break;
-			}
-			
-			return template;
-		}
+        private string GetTemplateForeignKeyReference(Reference reference, string idPattern)
+        {
+            string template = "";
 
-		private string GetTemplateForeignKeyReferencePatternAskId( Reference reference)
+            switch (idPattern)
+            {
+                case Global.IDPATTERN_ASKGUID:
+                    template = GetTemplateForeignKeyReferencePatternAskGuid(reference);
+                    break;
+                case Global.IDPATTERN_ASKVERSION:
+                    template = GetTemplateForeignKeyReferencePatternAskVersion(reference);
+                    break;
+                case Global.IDPATTERN_ASKID:
+                default:
+                    template = GetTemplateForeignKeyReferencePatternAskId(reference);
+                    break;
+            }
+
+            return template;
+        }
+
+        private string GetTemplateForeignKeyReferencePatternAskId(Reference reference)
         {
             return $"\n\t, FOREIGN KEY ({reference.ColumnName}IdRef) REFERENCES {reference.TableName}({reference.TableName}Id) ON DELETE SET NULL";
-		}
+        }
 
-		private string GetTemplateForeignKeyReferencePatternAskGuid( Reference reference)
+        private string GetTemplateForeignKeyReferencePatternAskGuid(Reference reference)
         {
             return $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.TableName}Guid) ON DELETE SET NULL";
-		}
+        }
 
-		private string GetTemplateForeignKeyReferencePatternAskVersion( Reference reference)
+        private string GetTemplateForeignKeyReferencePatternAskVersion(Reference reference)
         {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.TableName}Guid) ON DELETE SET NULL");
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"\n\t, FOREIGN KEY ({reference.ColumnName}GuidRef) REFERENCES {reference.TableName}({reference.TableName}Guid) ON DELETE SET NULL");
             return sb.ToString();
-		}
+        }
 
-		private string GetTemplateAdditionalPatternChoice( Structure entry)
+        private string GetTemplateAdditionalPatternChoice(Structure entry)
         {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, ChoiceName TEXT");
-			sb.Append( $"\n\t, OrderNo REAL");
-			sb.Append( $"\n\t, IsDisabled INTEGER");
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"\n\t, ChoiceName TEXT");
+            sb.Append($"\n\t, OrderNo REAL");
+            sb.Append($"\n\t, IsDisabled INTEGER");
             return sb.ToString();
-		}
+        }
 
-		private string GetTemplateTrackingPatternAudit( Structure entry)
+        private string GetTemplateTrackingPatternAudit(Structure entry)
         {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, CreatedBy TEXT");
-			sb.Append( $"\n\t, CreatedOn NUMERIC");
-			sb.Append( $"\n\t, UpdatedBy TEXT");
-			sb.Append( $"\n\t, UpdatedOn NUMERIC");
-
-            return sb.ToString();
-		}
-
-		private string GetTemplateTrackingPatternAuditPreserve( Structure entry)
-        {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( GetTemplateTrackingPatternAudit(entry));
-			sb.Append( $"\n\t, IsDeleted INTEGER");
-			
-            return sb.ToString();
-		}
-
-		private string GetTemplateTrackingPatternVersion( Structure entry)
-        {
-			StringBuilder sb = new StringBuilder();
-			sb.Append( $"\n\t, RecordState TEXT");
-			sb.Append( $"\n\t, PerformedBy TEXT");
-			sb.Append( $"\n\t, PerformedOn NUMERIC");
-			sb.Append( $"\n\t, PerformedReason TEXT");
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"\n\t, CreatedBy TEXT");
+            sb.Append($"\n\t, CreatedOn NUMERIC");
+            sb.Append($"\n\t, UpdatedBy TEXT");
+            sb.Append($"\n\t, UpdatedOn NUMERIC");
 
             return sb.ToString();
-		}
+        }
 
-		private void MakeCombinedSqlFileScript()
-		{
-			var fileNamePath = System.IO.Path.Combine(_pathSql, "combine.sh");
-			StringBuilder cmd = new StringBuilder();
+        private string GetTemplateTrackingPatternAuditPreserve(Structure entry)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append(GetTemplateTrackingPatternAudit(entry));
+            sb.Append($"\n\t, IsDeleted INTEGER");
 
-			cmd.Append("cat ");
-			foreach(var file in _tableCreationOrder)
-			{
-				cmd.Append($"\\\n{file}.sql ");
-			}
-			cmd.Append("> ALL.sql");
+            return sb.ToString();
+        }
 
-			System.IO.File.WriteAllText( fileNamePath, cmd.ToString());
-		}
+        private string GetTemplateTrackingPatternVersion(Structure entry)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"\n\t, RecordState TEXT");
+            sb.Append($"\n\t, PerformedBy TEXT");
+            sb.Append($"\n\t, PerformedOn NUMERIC");
+            sb.Append($"\n\t, PerformedReason TEXT");
+
+            return sb.ToString();
+        }
+
+        private void MakeCombinedSqlFileScript()
+        {
+            var fileNamePath = System.IO.Path.Combine(_pathSql, "combine.sh");
+            StringBuilder cmd = new StringBuilder();
+
+            cmd.Append("cat ");
+            foreach (var file in _tableCreationOrder)
+            {
+                cmd.Append($"\\\n{file}.sql ");
+            }
+            cmd.Append("> ALL.sql");
+
+            System.IO.File.WriteAllText(fileNamePath, cmd.ToString());
+        }
 
     }
 }
