@@ -455,9 +455,9 @@ namespace brashcli.Process
             switch (field.Type)
             {
                 case "D":
-                case "N":
                     _fields.Append("DateTime?");
                     break;
+                case "N":
                 case "F":
                     _fields.Append("decimal?");
                     break;

@@ -777,7 +777,7 @@ namespace " + domain + @".Api
     """ + domain + @".Api"": {
       ""commandName"": ""Project"",
       ""launchBrowser"": false,
-      ""applicationUrl"": ""https://localhost:" + _options.ApiPort + @""",
+      ""applicationUrl"": ""http://localhost:" + _options.ApiPort + @""",
       ""environmentVariables"": {
         ""ASPNETCORE_ENVIRONMENT"": ""Development""
       }
