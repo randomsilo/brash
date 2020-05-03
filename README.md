@@ -41,7 +41,24 @@ dotnet run cs-xtest-sqlite --file /shop/randomsilo/MyProject/structure.json
 
 # generate api classes
 ## - Startup.cs will need to be modified if more than 1 public website will make CORS requests
-dotnet run cs-api-sqlite --file /shop/randomsilo/MyProject/structure.json --user ADMIN_USER --pass PASS1234 --port 6100 --dev-site https://localhost:5001 --web-site https://myproject.ctrlshiftesc.com
+dotnet run cs-api-sqlite \
+--file /shop/randomsilo/MyProject/structure.json \
+--user ADMIN_USER \
+--pass PASS1234 \
+--port 6100 \
+--dev-site https://localhost:5001 \
+--web-site https://myproject.ctrlshiftesc.info
+
+dotnet run vue3-axios \
+--file /shop/randomsilo/MyProject/structure.json \
+--user ADMIN_USER \
+--pass PASS1234 \
+--port 6100 \
+--output-dir /shop/randomsilo/MyProject/vue-app/src/backend
+
+dotnet run vue3-bs4-gm-icons \
+--file /shop/randomsilo/MyProject/structure.json \
+--output-dir /shop/randomsilo/MyProject/vue-app/src/components
 
 ```
 
