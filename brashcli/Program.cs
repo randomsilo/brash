@@ -29,6 +29,7 @@ namespace brashcli
                 , CsXtestGeneration
                 , CsApiGeneration
                 , Vue3AxiosGeneration
+                , Vue3Bs4ComponentGeneration
                 >(args)
 	            .MapResult(
 	                (ProjectInitialization opts) => CreateProjectInitializeScript(opts)
@@ -39,6 +40,7 @@ namespace brashcli
                     , (CsXtestGeneration opts) => CreateCsXtestFiles(opts)
                     , (CsApiGeneration opts) => CreateVueAxiosFiles(opts)
                     , (Vue3AxiosGeneration opts) => CreateVueAxiosFiles(opts)
+                    , (Vue3Bs4ComponentGeneration opts) => CreateVue3Bs4ComponentFiles(opts)
                     , errs => 1);
         }
 
@@ -267,6 +269,35 @@ namespace brashcli
                 catch(Exception exception)
                 {
                     logger.Error(exception, "CreateVueAxiosFiles, unhandled exception caught.");
+                    returnCode = -1;
+                    break;
+                }
+
+            } while(false);
+
+            return returnCode;
+		}
+
+        static int CreateVue3Bs4ComponentFiles(Vue3Bs4ComponentGeneration opts)
+		{
+            int returnCode = 0;
+            var logger = GetLogger();
+
+            logger.Information($"File  : {opts.FilePath}"); 
+
+			do 
+            {
+                try 
+                {
+                    Vue3Bs4ComponentGenerationProcess process = new Vue3Bs4ComponentGenerationProcess(logger, opts);
+                    returnCode = process.Execute();
+                    if (returnCode != 0)
+                        break;
+
+                }
+                catch(Exception exception)
+                {
+                    logger.Error(exception, "CreateVue3Bs4ComponentFiles, unhandled exception caught.");
                     returnCode = -1;
                     break;
                 }
