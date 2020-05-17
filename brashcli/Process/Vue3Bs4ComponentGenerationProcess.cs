@@ -382,15 +382,104 @@ Entity: { context.EntityName }
 ";
         }
 
+        private (List<string> headers, string headerText) MakeListingHeaders(VueComponentContext context)
+        {
+          StringBuilder lines = new StringBuilder();
+          List<string> headers = new List<string>();
+          
+          headers.Add("Action");
+
+          foreach(var field in context.Entity.Fields)
+          {
+
+          }
+
+          return (headers, lines.ToString());
+        }
+
         public string MakeListing(VueComponentContext context)
         {
-            return $@"
+          StringBuilder headerLines = new StringBuilder();
+          StringBuilder valueLines = new StringBuilder();
+          List<string> headers = new List<string>();
+          List<string> values = new List<string>();
+          
+          // add action
+          headers.Add("Action");
+
+          // add primary key
+          switch(context.IdPattern)
+          {
+            case Global.IDPATTERN_ASKVERSION:
+              headers.Add("ID");
+              headers.Add("GUID");
+              headers.Add("VER");
+              headers.Add("Current");
+              values.Add($@"item.{context.EntityInstanceName}Id");
+              values.Add($@"item.{context.EntityInstanceName}Guid");
+              values.Add($@"item.{context.EntityInstanceName}RecordVersion");
+              values.Add($@"item.IsCurrent");
+            break;
+            case Global.IDPATTERN_ASKGUID:
+              headers.Add("ID");
+              headers.Add("GUID");
+              values.Add($@"item.{context.EntityInstanceName}Id");
+              values.Add($@"item.{context.EntityInstanceName}Guid");
+            break;
+            case Global.IDPATTERN_ASKID:
+            default:
+              headers.Add("ID");
+              values.Add($@"item.{context.EntityInstanceName}Id");
+              break;
+          };
+
+          // add fields
+          if (context.Entity.Fields != null && context.Entity.Fields.Count > 0)
+          {
+            foreach(var field in context.Entity.Fields)
+            {
+              headers.Add($@"{field.Name}");
+              if (field.Type == "D")
+              {
+                values.Add($@"translateDateTime(item.{field.Name})");
+              }
+              else 
+              {
+                values.Add($@"item.{field.Name}");
+              }
+            }
+          }
+
+          // add references
+          if (context.Entity.References != null && context.Entity.References.Count > 0)
+          {
+            foreach(var reference in context.Entity.References)
+            {
+              headers.Add($@"{reference.ColumnName}");
+              values.Add($@"translate{reference.TableName}Id(item.{reference.ColumnName})");
+            }
+          }
+
+          // make header tags
+          foreach(var header in headers)
+          {
+            headerLines.Append($@"<th scope=""col"">{{{{ {header} }}}}</th>" + "\n                  ");
+          }
+
+          // make value tags
+          foreach(var value in values)
+          {
+            valueLines.Append($@"<td>{{{{ {value} }}}}</td>" + "\n                  ");
+          }
+
+
+          var text = $@"
           <!-- table listing -->
           <div class=""row justify-content-md-center"" v-if=""isListingVisible()"">
             <table class=""table"">
               <thead class=""thead-light"">
                 <tr>
-                  <th scope=""col"" colspan=""6"">
+                  <th scope=""col"" colspan=""{headers.Count}"">
                     <button class=""btn btn-success btn-sm float-right"" title=""add new"" @click=""addForm()"">
                       <i class=""material-icons"" style=""font-size:12px;"">add</i>
                     </button>
@@ -402,35 +491,28 @@ Entity: { context.EntityName }
               </thead>
               <thead class=""thead-dark"">
                 <tr>
-                  <th scope=""col"">Action</th>
-                  <th scope=""col"">ID</th>
-                  <th scope=""col"">Summary</th>
-                  <th scope=""col"">Details</th>
-                  <th scope=""col"">Due Date</th>
-                  <th scope=""col"">Status</th>
+                  {headerLines.ToString()}
                 </tr>
               </thead>
               <tbody>
                 <tr v-for='(item, index) in this.items' :key='item.todoEntryId'>
-                  <th>
+                  <td>
                     <button class=""btn btn-danger btn-sm"" title=""remove"" @click=""onRemove(index)"">
                       <i class=""material-icons"" style=""font-size:12px;"">delete</i>
                     </button>
                     <button class=""btn btn-secondary btn-sm"" title=""edit"" @click=""onEdit(index)"">
                       <i class=""material-icons"" style=""font-size:12px;"">edit</i>
                     </button>
-                  </th>
-                  <td>{{{{ item.todoEntryId }}}}</td>
-                  <td>{{{{ item.summary }}}}</td>
-                  <td>{{{{ item.details }}}}</td>
-                  <td>{{{{ translateDateTime(item.dueDate) }}}}</td>
-                  <td>{{{{ translateEntryStatusId(item.entryStatusIdRef) }}}}</td>
+                  </td>
+                  {valueLines.ToString()}
                 </tr>
               </tbody>
             </table>
           </div>        
 
 ";
+
+          return text;
         }
 
         public string MakeForm(VueComponentContext context)
