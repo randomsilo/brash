@@ -176,6 +176,30 @@ namespace brashcli.Process
             return newString;
         }
 
+        public string ToSpaceSeparated(string input)
+        {
+          StringBuilder lable = new StringBuilder();
+          bool previousCharacterIsLower = false;
+          bool currentCharacterIsLower = false;
+          int indexToIgnore = 1;
+
+          for( int i=0; i<input.Length; i++)
+          {
+            currentCharacterIsLower = Char.IsLower(input[i]);
+
+            if (currentCharacterIsLower != previousCharacterIsLower && i != indexToIgnore)
+            {
+              indexToIgnore = i + 1;
+              lable.Append(" ");
+            }
+
+            lable.Append(input[i]);
+            previousCharacterIsLower = currentCharacterIsLower;
+          }
+
+          return lable.ToString();
+        }
+
         private string GetFindByParentRoute(
             string domain
             , Structure entity
@@ -515,35 +539,110 @@ Entity: { context.EntityName }
           return text;
         }
 
+        private string MakePrimaryKeyFormField(string label, string name)
+        {
+          return $@"
+              <label for=""{name}"">{label}</label>
+              <input v-model=""form.{name}"" type=""text"" id=""{name}"" class=""form-control form-control-sm col"" autocomplete=""off"" readonly>
+              <br />
+              
+          ";
+        }
+
+        private string MakeTextFormField(string label, string name)
+        {
+          return $@"
+              <label for=""{name}"">{ToSpaceSeparated(label)}</label>
+              <input v-model=""form.{name}"" type=""text"" id=""{name}"" class=""form-control form-control-sm col"" autocomplete=""off"" required autofocus>
+              <br />
+              
+          ";
+        }
+
+        private string MakeDateFormField(string label, string name)
+        {
+          return $@"
+              <label for=""{name}"">{ToSpaceSeparated(label)}</label>
+              <input v-model=""form.{name}"" type=""datetime-local"" id=""{name}"" class=""form-control form-control-sm col"" autocomplete=""off"">
+              <br />
+              
+          ";
+        }
+
+        private string MakeReferenceFormField(Reference reference, string displayColumn = "choiceName")
+        {
+          var name = ToLowerFirstChar(reference.ColumnName);
+          var listName = $"{ToLowerFirstChar(reference.TableName)}List";
+          var listItemId = $"{ToLowerFirstChar(reference.TableName)}Id";
+          return $@"
+              <label for=""{name}"">{ToSpaceSeparated(reference.TableName)}</label>
+              <select class=""form-control col"" id=""{name}"" v-model=""form.{name}"">
+                <option v-for=""item in {listName}"" v-bind:key=""item.{listItemId}"" v-bind:value=""item.{listItemId}"">{{{{ item.{displayColumn} }}}}</option>
+              </select>
+              <br />
+              
+          ";
+        }
+
         public string MakeForm(VueComponentContext context)
         {
-            return $@"
+          StringBuilder lines = new StringBuilder();
+
+          // start form
+          var start = $@"
           <!-- form -->
           <div class=""row justify-content-md-center"" v-if=""isFormVisible()"">
             <form class=""col col-lg-6 col-md-10 col-sm-12"" @submit.prevent=""onSave"">
+          ";
 
-              <label for=""todoEntryId"">ID</label>
-              <input v-model=""form.todoEntryId"" type=""text"" id=""todoEntryId"" class=""form-control form-control-sm col"" autocomplete=""off"" readonly>
-              <br />
-              
-              <label for=""summary"">Summary</label>
-              <input v-model=""form.summary"" type=""text"" id=""summary"" class=""form-control form-control-sm col"" autocomplete=""off"" required autofocus>
-              <br />
+          lines.Append(start);
 
-              <label for=""details"">Details</label>
-              <input v-model=""form.details"" type=""text"" id=""details"" class=""form-control form-control-sm col"" autocomplete=""off"">
-              <br />
+          // add primary key
+          switch(context.IdPattern)
+          {
+            case Global.IDPATTERN_ASKVERSION:
+              lines.Append(MakePrimaryKeyFormField("ID", $"{context.EntityInstanceName}Id"));
+              lines.Append(MakePrimaryKeyFormField("GUID", $"{context.EntityInstanceName}Guid"));
+              lines.Append(MakePrimaryKeyFormField("VERSION", $"{context.EntityInstanceName}RecordVersion"));
+              lines.Append(MakePrimaryKeyFormField("Current", "IsCurrent"));
+            break;
+            case Global.IDPATTERN_ASKGUID:
+              lines.Append(MakePrimaryKeyFormField("ID", $"{context.EntityInstanceName}Id"));
+              lines.Append(MakePrimaryKeyFormField("GUID", $"{context.EntityInstanceName}Guid"));
+            break;
+            case Global.IDPATTERN_ASKID:
+            default:
+              lines.Append(MakePrimaryKeyFormField("ID", $"{context.EntityInstanceName}Id"));
+              break;
+          };
 
-              <label for=""dueDate"">Due Date</label>
-              <input v-model=""form.dueDate"" type=""datetime-local"" id=""dueDate"" class=""form-control form-control-sm col"" autocomplete=""off"">
-              <br />
+          // add fields
+          if (context.Entity.Fields != null && context.Entity.Fields.Count > 0)
+          {
+            foreach(var field in context.Entity.Fields)
+            {
+              if (field.Type == "D")
+              {
+                lines.Append(MakeDateFormField(field.Name, ToLowerFirstChar(field.Name)));
+              }
+              else 
+              {
+                lines.Append(MakeTextFormField(field.Name, ToLowerFirstChar(field.Name)));
+              }
+            }
+          }
 
-              <label for=""entryStatusIdRef"">Entry Status</label>
-              <select class=""form-control col"" id=""entryStatusIdRef"" v-model=""form.entryStatusIdRef"">
-                <option v-for=""item in entryStatuses"" v-bind:key=""item.todoStatusId"" v-bind:value=""item.todoStatusId"">{{{{ item.choiceName }}}}</option>
-              </select>
-              <br />
+          // add references
+          if (context.Entity.References != null && context.Entity.References.Count > 0)
+          {
+            foreach(var reference in context.Entity.References)
+            {
+              lines.Append(MakeReferenceFormField(reference));
+            }
+          }
 
+          // end form
+          var end = $@"
               <div class=""form-group row"">
                 <div class=""col-12"">
                   <button type=""reset"" class=""btn btn-warning float-right"" title=""clear"" @click=""onReset"">Clear</button>
@@ -557,6 +656,10 @@ Entity: { context.EntityName }
           </div>        
 
 ";
+
+          lines.Append(end);
+
+          return lines.ToString();
         }
 
         
